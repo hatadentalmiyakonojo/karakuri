@@ -1,0 +1,1824 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>むしむし からくり</title>
+<style>
+  :root {
+    --bg: #eef6fb;
+    --panel: #ffffff;
+    --ink: #33302a;
+    --sky1: #cfe9ff;
+    --sky2: #eaf6ff;
+    --accent: #ff9838;
+    --accent-dark: #e97f1e;
+    --green: #6dbb4a;
+    --blue: #5aa8e8;
+    --wood: #c9924f;
+    --wood-d: #9a6a33;
+    --p-plank: #c9924f;
+    --p-slope: #e0a95f;
+    --p-domino: #5a8fd0;
+    --p-rock: #9a938a;
+    --p-switch: #e05555;
+    --p-lid: #b9a06a;
+    --shadow: 0 3px 0 rgba(0,0,0,0.12);
+    --radius: 16px;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { height:100%; overscroll-behavior:none; }
+  body {
+    font-family: "Hiragino Maru Gothic ProN", "BIZ UDGothic", "Yu Gothic", sans-serif;
+    background: var(--bg); color: var(--ink);
+    user-select:none; -webkit-user-select:none; touch-action:manipulation;
+    overflow:hidden;
+  }
+  .screen { display:none; position:fixed; inset:0; flex-direction:column; }
+  .screen.active { display:flex; }
+
+  button {
+    font-family:inherit; border:none; cursor:pointer; color:var(--ink);
+    border-radius:var(--radius); background:var(--panel); box-shadow:var(--shadow);
+  }
+  button:active { transform:translateY(2px); box-shadow:0 1px 0 rgba(0,0,0,0.12); }
+  button[disabled] { opacity:.4; pointer-events:none; }
+
+  /* ===== タイトル ===== */
+  #screen-title { align-items:center; justify-content:center; gap:22px;
+    background: linear-gradient(#cfe9ff 0%, #eaf6ff 55%, #d8ecc4 100%); }
+  #screen-title h1 { font-size:clamp(28px,6vw,50px); color:#2f6fa8; text-shadow:2px 2px 0 #fff; letter-spacing:2px; text-align:center; line-height:1.3; }
+  #screen-title .sub { font-size:clamp(13px,2.4vw,18px); color:#5a7a92; }
+  #title-parade { display:flex; gap:12px; align-items:flex-end; }
+  #title-parade svg { width:clamp(42px,8vw,74px); height:auto; animation:hop 1.6s ease-in-out infinite; }
+  #title-parade svg:nth-child(2){ animation-delay:.2s } #title-parade svg:nth-child(3){ animation-delay:.4s }
+  #title-parade svg:nth-child(4){ animation-delay:.6s } #title-parade svg:nth-child(5){ animation-delay:.8s }
+  @keyframes hop { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+  #btn-start { font-size:clamp(22px,4vw,32px); padding:18px 56px; background:var(--accent); color:#fff; font-weight:bold; }
+  #title-ver { position:absolute; bottom:8px; right:12px; font-size:11px; color:#8a97a2; }
+
+  /* ===== 共通ヘッダ ===== */
+  .map-header { display:flex; align-items:center; justify-content:space-between; padding:6px 4px 12px; gap:10px; }
+  .map-header h2 { font-size:clamp(17px,3.2vw,26px); color:#2f6fa8; }
+  .map-header .hbtns { display:flex; gap:10px; flex-shrink:0; }
+  .map-header button { font-size:clamp(13px,2.3vw,18px); padding:10px 15px; font-weight:bold; white-space:nowrap; }
+
+  /* ===== しま えらび ===== */
+  #screen-islands { background:linear-gradient(#cfe9ff,#e4f2df); padding: max(10px, env(safe-area-inset-top)) 16px 16px; }
+  #island-list { flex:1; display:flex; flex-wrap:wrap; gap:clamp(10px,2vw,18px); align-content:center; justify-content:center; overflow:auto; }
+  .is-btn { width:clamp(150px,19vw,220px); padding:16px 10px 14px; display:flex; flex-direction:column; align-items:center; gap:6px; background:#fffef8; }
+  .is-btn .is-icon { font-size:clamp(30px,5vw,44px); }
+  .is-btn .is-name { font-size:clamp(15px,2.3vw,19px); font-weight:bold; text-align:center; line-height:1.3; }
+  .is-btn .is-sub { font-size:clamp(11px,1.8vw,14px); color:#6a8090; text-align:center; line-height:1.35; }
+  .is-btn .is-prog { font-size:16px; min-height:22px; letter-spacing:1px; }
+  .is-btn.locked { filter:grayscale(1); opacity:.55; }
+
+  /* ===== めん えらび ===== */
+  #screen-map { background: linear-gradient(#e4f2df,#cfe4b8); padding: max(10px, env(safe-area-inset-top)) 16px 16px; }
+  #map-levels { flex:1; display:flex; flex-wrap:wrap; gap:clamp(10px,2vw,20px); align-content:center; justify-content:center; overflow:auto; }
+  .lv-btn { width:clamp(128px,20vw,186px); padding:14px 8px 12px; display:flex; flex-direction:column; align-items:center; gap:5px; background:#fffef8; }
+  .lv-btn svg { width:clamp(44px,6.5vw,64px); height:auto; }
+  .lv-btn .lv-num { font-size:13px; color:#7a8a96; font-weight:bold; }
+  .lv-btn .lv-name { font-size:clamp(13px,2.1vw,16px); font-weight:bold; line-height:1.3; text-align:center; }
+  .lv-btn .lv-badges { font-size:20px; min-height:26px; }
+  .lv-btn.locked { filter:grayscale(1); opacity:.55; }
+  .lv-btn.locked .lv-badges::before { content:"🔒"; }
+
+  /* ===== ゲーム ===== */
+  #screen-game { background:var(--bg); }
+  #game-header { display:flex; align-items:center; gap:7px; padding: max(8px, env(safe-area-inset-top)) 12px 6px; }
+  #game-header button { font-size:14px; padding:9px 12px; font-weight:bold; white-space:nowrap; }
+  #lv-title { flex:1; text-align:center; font-size:clamp(14px,2.6vw,20px); font-weight:bold; color:#2f6fa8; }
+  #goal-bar { margin:0 12px; padding:7px 14px; background:#fff8e6; border:2px solid #f0d9a0; border-radius:12px; font-size:clamp(12px,2.1vw,16px); line-height:1.45; display:flex; align-items:center; gap:8px; }
+  #goal-bar .goal-text { flex:1; }
+  #btn-hint { font-size:13px; padding:7px 11px; display:none; background:#fff3b8; flex-shrink:0; }
+  #btn-hint.show { display:block; }
+
+  /* 部品メーター */
+  #meter { margin:7px 12px 0; padding:5px 14px 7px; background:#fff; border-radius:12px; box-shadow:var(--shadow);
+           display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:clamp(12px,2vw,15px); font-weight:bold; }
+  #meter.hide { display:none; }
+  #meter-goal b { color:#c58a12; }
+  .meter-slots { display:flex; gap:3px; align-items:flex-end; padding-top:16px; }
+  .mslot { width:17px; height:24px; border-radius:4px; background:#f0ece2; border:2px solid #dcd6c6; position:relative; transition:background .15s; }
+  .mslot.afterpar { margin-left:11px; }
+  .mslot.gold { background:#fff4d0; border-color:#eac25a; }
+  .mslot.used { background:#7ec95c; border-color:#5aa83a; }
+  .mslot.used.gold { background:#f5c542; border-color:#d9a520; }
+  .mslot.over { background:#f3b077; border-color:#dd8b3c; }
+  .mslot .flag { position:absolute; top:-17px; left:50%; transform:translateX(-50%); font-size:14px; }
+  .mslot.wall { border-right-width:5px; border-right-color:#b8afa0; }
+  #meter-msg { margin-left:auto; padding:3px 10px; border-radius:9px; background:#f4f1e8; white-space:nowrap; }
+  #meter-msg.par  { background:#fff0b8; color:#a5760a; }
+  #meter-msg.over { background:#ffe2cc; color:#b06a1a; }
+  #meter-msg.full { background:#ffd9d9; color:#b23a3a; }
+
+  #stage-wrap { flex:1; display:flex; align-items:center; justify-content:center; padding:6px 12px; position:relative; min-height:0; }
+  #stage { width:100%; height:100%; }
+  #stage .hit { cursor:pointer; }
+  body.running #stage .hit { pointer-events:none; }
+  .tf { transform-origin:0 0; }
+  #ball { transition: transform .22s linear; }
+  .dom { transition: transform .18s ease-in; }
+  .lidg { transition: transform .35s ease-in, opacity .35s ease-in; }
+  #energy { position:absolute; left:18px; top:10px; background:rgba(255,255,255,.92); border-radius:12px;
+            padding:5px 12px; font-size:clamp(12px,2vw,15px); font-weight:bold; display:none; align-items:center; gap:8px;
+            box-shadow:0 2px 6px rgba(0,0,0,.12); }
+  #energy.show { display:flex; }
+  .edot { width:12px; height:12px; border-radius:6px; background:#dfe6ea; display:inline-block; }
+  .edot.on { background:#ff8a3d; }
+  #bubble { position:absolute; left:50%; bottom:10px; transform:translateX(-50%); background:#fff; border:3px solid var(--accent); border-radius:16px; padding:10px 20px; font-size:clamp(14px,2.5vw,19px); font-weight:bold; display:none; z-index:5; white-space:nowrap; box-shadow:0 4px 10px rgba(0,0,0,.15); }
+  #bubble.show { display:block; animation:pop .25s; }
+  @keyframes pop { 0%{transform:translateX(-50%) scale(.6)} 100%{transform:translateX(-50%) scale(1)} }
+
+  #palette { display:flex; align-items:center; gap:7px; padding:8px 12px 4px; flex-wrap:wrap; justify-content:center; }
+  #palette2 { display:none; align-items:center; gap:6px; padding:0 12px 4px; flex-wrap:wrap; justify-content:center; font-size:12px; font-weight:bold; }
+  #palette2.show { display:flex; }
+  #runrow { display:flex; align-items:center; gap:8px; padding:2px 12px calc(10px + env(safe-area-inset-bottom)); flex-wrap:wrap; justify-content:center; }
+  .part-btn { width:clamp(54px,7vw,70px); height:clamp(58px,7.6vw,76px); padding:2px 0 3px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; background:#fff; }
+  .part-btn svg { width:clamp(30px,3.8vw,38px); height:clamp(30px,3.8vw,38px); }
+  .part-btn span { font-size:clamp(10px,1.5vw,12px); font-weight:bold; line-height:1; }
+  .part-btn.sel { background:#ffe0b8; box-shadow:0 0 0 3px var(--accent), var(--shadow); }
+  .util-btn { font-size:13px; padding:0 13px; height:clamp(42px,5.2vw,50px); font-weight:bold; background:#fff; }
+  #btn-run { font-size:clamp(17px,2.7vw,22px); padding:0 26px; height:clamp(48px,6vw,58px); background:var(--accent); color:#fff; font-weight:bold; }
+  body.running .part-btn, body.running .util-btn, body.running #btn-run { opacity:.45; pointer-events:none; }
+  body.showtime #palette, body.showtime #palette2, body.showtime #meter, body.showtime #goal-bar { display:none; }
+
+  /* ===== オーバーレイ ===== */
+  #overlay { position:fixed; inset:0; background:rgba(40,70,90,.45); display:none; align-items:center; justify-content:center; z-index:20; }
+  #overlay.show { display:flex; }
+  #overlay-card { background:#fffef8; border-radius:24px; padding:24px 30px; text-align:center; max-width:min(92vw,480px); max-height:92vh; overflow:auto; display:flex; flex-direction:column; gap:11px; align-items:center; animation:pop2 .35s; }
+  @keyframes pop2 { 0%{transform:scale(.5); opacity:0} 100%{transform:scale(1); opacity:1} }
+  #overlay-card h3 { font-size:clamp(23px,4.5vw,33px); color:var(--accent-dark); }
+  #overlay-card svg { width:82px; height:auto; }
+  #overlay-badges { font-size:27px; min-height:32px; }
+  #overlay-msg { font-size:clamp(13px,2.3vw,17px); line-height:1.55; }
+  #overlay-fact { display:none; background:#fff8e0; border:3px dashed #f0c860; border-radius:16px;
+                  padding:11px 16px 13px; text-align:left; animation:pop2 .5s .25s backwards; }
+  #overlay-fact.show { display:block; }
+  #overlay-fact .of-head { display:flex; align-items:center; gap:9px; justify-content:space-between;
+                           font-weight:bold; color:#b07d0a; font-size:clamp(12px,2.1vw,15px); margin-bottom:6px; }
+  #overlay-fact .of-head button { font-size:12px; padding:6px 11px; background:#fff; flex-shrink:0; }
+  #overlay-fact .of-body { font-size:clamp(12px,2.2vw,16px); line-height:1.65; }
+  #overlay-btns { display:flex; gap:12px; flex-wrap:wrap; justify-content:center; }
+  #overlay-btns button { font-size:clamp(14px,2.5vw,19px); padding:13px 20px; font-weight:bold; }
+  #overlay-btns .primary { background:var(--accent); color:#fff; }
+
+  /* ===== モーダル ===== */
+  #modal { position:fixed; inset:0; background:rgba(40,50,60,.42); display:none; align-items:center; justify-content:center; z-index:30; }
+  #modal.show { display:flex; }
+  #modal-card { background:#fffef8; border-radius:22px; padding:22px 26px; display:flex; flex-direction:column; gap:14px; align-items:center; max-width:min(92vw,520px); }
+  #modal-card h3 { font-size:clamp(17px,3.2vw,23px); }
+  #modal-body { display:flex; flex-wrap:wrap; gap:10px; justify-content:center; }
+  #modal-body button { font-size:clamp(15px,2.6vw,20px); font-weight:bold; min-width:62px; padding:14px 16px; background:#eaf3f7; }
+  #modal-body button.sel { background:var(--accent); color:#fff; }
+  #modal-cancel { font-size:15px; padding:10px 18px; }
+
+  /* ===== ずかん ===== */
+  #screen-zukan { background:linear-gradient(#fdf3d8,#f6e6bd); padding: max(10px, env(safe-area-inset-top)) 16px 16px; }
+  #zukan-grid { flex:1; overflow:auto; padding-top:6px; }
+  .zk-sec { font-size:clamp(14px,2.2vw,17px); font-weight:bold; color:#8a6a2a; margin:10px 0 8px; }
+  .zk-row { display:flex; flex-wrap:wrap; gap:clamp(8px,1.6vw,14px); }
+  .zk-card { width:clamp(128px,17vw,182px); background:#fffef8; border-radius:16px; padding:12px 10px; display:flex; flex-direction:column; align-items:center; gap:6px; box-shadow:var(--shadow); }
+  .zk-card svg { width:clamp(46px,6.2vw,64px); height:auto; }
+  .zk-card .zk-name { font-weight:bold; font-size:clamp(12px,2vw,16px); }
+  .zk-card .zk-fact { font-size:clamp(11px,1.7vw,13px); line-height:1.5; color:#6a5f4a; text-align:center; }
+  .zk-card .zk-wow { font-size:clamp(11px,1.7vw,13px); line-height:1.55; color:#8a6a2a; text-align:left;
+                     background:#fff6d8; border-radius:10px; padding:7px 9px; width:100%; }
+  .zk-card.unknown svg { filter:brightness(0) opacity(.25); }
+  .zk-card.unknown .zk-fact { color:#b0a888; }
+
+  /* ===== おうちのかたへ ===== */
+  #screen-parent { background:#eef2f5; padding: max(10px, env(safe-area-inset-top)) 20px 20px; overflow:auto; display:none; }
+  #screen-parent.active { display:block; }
+  .parent-box { max-width:680px; margin:0 auto; background:#fff; border-radius:16px; padding:22px 26px; box-shadow:var(--shadow); }
+  .parent-box h2 { font-size:20px; margin-bottom:12px; }
+  .parent-box h3 { font-size:16px; margin:18px 0 6px; }
+  .parent-box p, .parent-box li { font-size:14px; line-height:1.7; }
+  .parent-box ul { padding-left:20px; }
+  .parent-box .btnrow { display:flex; gap:10px; flex-wrap:wrap; margin:10px 0; }
+  .parent-box button { font-size:14px; padding:10px 16px; border:1px solid #ccd5dd; box-shadow:none; }
+  .danger { color:#c0392b; }
+
+  /* ===== selftest ===== */
+  #selftest-overlay { position:fixed; inset:0; background:#fff; z-index:99; overflow:auto; padding:20px; display:none; font-family:monospace; }
+  #selftest-overlay.show { display:block; }
+  #selftest-overlay div { font-size:13px; line-height:1.6; }
+  #selftest-overlay .ok { color:#1a8a3a; } #selftest-overlay .ng { color:#c0392b; font-weight:bold; }
+  #selftest-overlay h2 { font-family:inherit; margin-bottom:10px; }
+
+  @media (max-width: 760px), (max-height: 540px) {
+    #goal-bar, #meter { margin-left:8px; margin-right:8px; }
+    #stage-wrap { min-height:150px; padding:4px 8px; }
+    .part-btn { width:48px; height:52px; }
+    .part-btn svg { width:26px; height:26px; }
+    .part-btn span { font-size:9px; }
+    .util-btn { font-size:11px; padding:0 9px; height:40px; }
+    #btn-run { font-size:16px; padding:0 18px; height:46px; }
+    #palette { gap:5px; padding:6px 8px 3px; }
+    #meter { padding:4px 10px 6px; gap:6px; font-size:11px; }
+    #meter-msg { margin-left:0; font-size:11px; padding:2px 8px; }
+    .mslot { width:14px; height:20px; }
+    .meter-slots { padding-top:15px; }
+    #game-header { gap:5px; padding-left:8px; padding-right:8px; }
+    #game-header button { font-size:12px; padding:7px 9px; }
+    #goal-bar { padding:5px 10px; }
+  }
+
+  .stage-shake { animation:shake .4s; }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
+</style>
+</head>
+<body>
+
+<!-- ============ タイトル ============ -->
+<div id="screen-title" class="screen active">
+  <div id="title-parade"></div>
+  <h1>むしむし からくり</h1>
+  <div class="sub">ころがして つなげて とどけよう</div>
+  <button id="btn-start">はじめる</button>
+  <div id="title-ver"></div>
+</div>
+
+<!-- ============ しま えらび ============ -->
+<div id="screen-islands" class="screen">
+  <div class="map-header">
+    <h2>🗺️ しまを えらぼう</h2>
+    <div class="hbtns">
+      <button id="btn-zukan">📖 ずかん</button>
+      <button id="btn-parent" title="おうちのかたへ">⚙</button>
+    </div>
+  </div>
+  <div id="island-list"></div>
+</div>
+
+<!-- ============ めん えらび ============ -->
+<div id="screen-map" class="screen">
+  <div class="map-header">
+    <h2 id="map-title"></h2>
+    <div class="hbtns"><button id="btn-map-back">← しま</button></div>
+  </div>
+  <div id="map-levels"></div>
+</div>
+
+<!-- ============ ゲーム ============ -->
+<div id="screen-game" class="screen">
+  <div id="game-header">
+    <button id="btn-back">← もどる</button>
+    <div id="lv-title"></div>
+    <button id="btn-speak">🔊</button>
+    <button id="btn-fast">🐢</button>
+    <button id="btn-mute">🔈</button>
+  </div>
+  <div id="goal-bar">
+    <span>🎯</span><span class="goal-text" id="goal-text"></span>
+    <button id="btn-hint">💡ヒント</button>
+  </div>
+  <div id="meter">
+    <span id="meter-goal"></span>
+    <div class="meter-slots" id="meter-slots"></div>
+    <span id="meter-msg"></span>
+  </div>
+  <div id="stage-wrap">
+    <svg id="stage" xmlns="http://www.w3.org/2000/svg"></svg>
+    <div id="energy"><span>いきおい</span><span id="energy-dots"></span></div>
+    <div id="bubble"></div>
+  </div>
+  <div id="palette"></div>
+  <div id="palette2"></div>
+  <div id="runrow">
+    <button id="btn-clearall" class="util-btn">ぜんぶ けす</button>
+    <button id="btn-run">▶ スタート</button>
+    <button id="btn-show" class="util-btn">👀 みせる</button>
+  </div>
+</div>
+
+<!-- ============ クリア/メッセージ ============ -->
+<div id="overlay">
+  <div id="overlay-card">
+    <h3 id="overlay-title">🎉 やったー！</h3>
+    <div id="overlay-creature"></div>
+    <div id="overlay-badges"></div>
+    <div id="overlay-msg"></div>
+    <div id="overlay-fact"></div>
+    <div id="overlay-btns">
+      <button id="btn-retry">もう一回</button>
+      <button id="btn-map2">マップへ</button>
+      <button id="btn-next" class="primary">つぎへ ▶</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ モーダル ============ -->
+<div id="modal">
+  <div id="modal-card">
+    <h3 id="modal-title"></h3>
+    <div id="modal-body"></div>
+    <button id="modal-cancel">やめる</button>
+  </div>
+</div>
+
+<!-- ============ ずかん ============ -->
+<div id="screen-zukan" class="screen">
+  <div class="map-header">
+    <h2 id="zukan-title">📖 ずかん</h2>
+    <div class="hbtns"><button id="btn-zukan-back">← もどる</button></div>
+  </div>
+  <div id="zukan-grid"></div>
+</div>
+
+<!-- ============ おうちのかたへ ============ -->
+<div id="screen-parent" class="screen">
+  <div class="parent-box">
+    <h2>おうちのかたへ</h2>
+    <p>小学校低学年向けの「からくり（ピタゴラ装置）作り」パズルです。坂・板・ドミノを盤面に置いて、どんぐりを生き物まで転がします。時間制限もゲームオーバーもなく、何度でも置き直せます。</p>
+    <h3>この遊びで育つもの</h3>
+    <ul>
+      <li><b>因果の連鎖</b>… 「これが倒れたら次はこうなる」を先読みする</li>
+      <li><b>力と動きのしくみ</b>… 落ちた高さの分だけ「いきおい」がつき、平らな道では減っていく（＝位置エネルギーと摩擦）</li>
+      <li><b>逆算して考える</b>… ゴールから逆にたどって「その手前に何が必要か」を考える</li>
+      <li><b>自由に作る</b>… じゆう工作のしまで自分の装置を作り、保存して家族に見せられる</li>
+    </ul>
+    <h3>「いきおい」のルール（お子さんに聞かれたら）</h3>
+    <ul>
+      <li>1マス落ちると いきおいが 1 ふえる／坂を通ると 1 ふえる</li>
+      <li>平らな道を 1マス進むと いきおいが 1 へる（＝止まる）</li>
+      <li>ドミノを1本たおすのに いきおいを 1 つかう。ただし<b>ドミノが隣り合っていれば連鎖するので、たおす回数は1回で済む</b></li>
+    </ul>
+    <p>各面には「部品は○個まで」という上限があります。少ない部品で解くには規則を見つける必要があり、🏅は最短でクリアしたときだけつきます。上限を超えても⭐クリアはできます。</p>
+    <h3>データについて</h3>
+    <p>クリア状況・ずかん・作った装置は、この端末のブラウザ内にのみ保存されます（外部送信はありません）。同じURL・同じ場所でファイルを開き続ける限り保存されます。</p>
+    <div class="btnrow">
+      <button id="btn-export">バックアップを保存（JSON）</button>
+      <button id="btn-import">バックアップから復元</button>
+      <input type="file" id="import-file" accept=".json,application/json" style="display:none">
+    </div>
+    <div class="btnrow">
+      <button id="btn-reset" class="danger">データを全て消去してやり直す</button>
+    </div>
+    <h3>ヒント機能</h3>
+    <p>同じ面で3回失敗すると「💡ヒント」ボタンが現れます。まずは自分で考えさせて、詰まったときだけ使わせるのがおすすめです。</p>
+    <div class="btnrow"><button id="btn-parent-back">← ゲームにもどる</button></div>
+    <p style="color:#8a929a; font-size:12px; margin-top:10px;" id="parent-ver"></p>
+  </div>
+</div>
+
+<div id="selftest-overlay"><h2>セルフテスト</h2><div id="selftest-out"></div></div>
+
+<script>
+'use strict';
+/* =====================================================================
+   むしむし からくり（ころがし装置パズル）
+   単一HTML / 外部依存なし / iPad Safari 対応 / localStorage 保存
+   しま1 ころがる / しま2 ドミノ / しま3 じゆう工作
+===================================================================== */
+const APP_VERSION = '1.0.0';
+const DATA_SCHEMA = 1;
+const STORAGE_KEY = 'mushimushi-karakuri';
+const CELL = 100;
+const EMAX = 9;          // いきおいの 上限（保険）
+const TICK_LIMIT = 300;  // 無限っぽい うごきの 保険
+
+/* ---------------- いきもの（SVG・右向きが基本） ---------------- */
+const CREATURES = {
+  risu: { name:'リス',
+    fact:'どんぐりを 土に かくすよ。ときどき かくした ばしょを わすれちゃう！',
+    wow:'わすれられた どんぐりは めを 出して 木に なる。リスは しらないうちに 森を 作って いるんだ。',
+    svg:`<g><path d="M34 76 Q6 72 12 44 Q16 20 36 26 Q24 44 34 58 Z" fill="#a2622d"/><ellipse cx="52" cy="62" rx="22" ry="18" fill="#b97a3e"/><circle cx="72" cy="48" r="15" fill="#b97a3e"/><path d="M64 36 L60 24 L72 32 Z" fill="#a2622d"/><path d="M80 36 L84 24 L88 34 Z" fill="#a2622d"/><ellipse cx="54" cy="68" rx="12" ry="9" fill="#e9cfa8"/><circle cx="76" cy="46" r="4.5" fill="#fff"/><circle cx="77.5" cy="47" r="2.2" fill="#222"/><circle cx="85" cy="52" r="3" fill="#7a4a21"/><line x1="46" y1="80" x2="44" y2="88" stroke="#8a5426" stroke-width="4" stroke-linecap="round"/><line x1="62" y1="80" x2="64" y2="88" stroke="#8a5426" stroke-width="4" stroke-linecap="round"/></g>` },
+  dango: { name:'ダンゴムシ',
+    fact:'びっくりすると まるくなるよ。じつは エビや カニに 近い なかま！',
+    wow:'かべに ぶつかると 右、つぎは 左、と こうごに まがる くせが あるよ。じぶんで ためして みてね！',
+    svg:`<g><line x1="34" y1="74" x2="30" y2="84" stroke="#5a6068" stroke-width="3.5" stroke-linecap="round"/><line x1="46" y1="76" x2="44" y2="86" stroke="#5a6068" stroke-width="3.5" stroke-linecap="round"/><line x1="58" y1="76" x2="58" y2="86" stroke="#5a6068" stroke-width="3.5" stroke-linecap="round"/><path d="M18 74 Q18 34 48 32 Q78 34 80 74 Z" fill="#8a8f98"/><path d="M30 40 Q48 33 66 40 M24 50 Q48 41 74 50 M21 62 Q48 52 78 62" stroke="#6d737d" stroke-width="3" fill="none"/><circle cx="80" cy="66" r="10" fill="#7a8089"/><path d="M84 58 Q88 50 86 46 M78 58 Q78 49 74 46" stroke="#7a8089" stroke-width="3" fill="none" stroke-linecap="round"/><circle cx="83" cy="64" r="3.8" fill="#fff"/><circle cx="84.5" cy="65" r="1.9" fill="#222"/></g>` },
+  ari: { name:'アリ',
+    fact:'自分の 体より ずっと おもいものも はこべる 力もち！',
+    wow:'アリの ぎょうれつは、先に 行った なかまが つけた においの 道を たどって いるんだ。',
+    svg:`<g><line x1="40" y1="66" x2="30" y2="82" stroke="#2c2016" stroke-width="3.5" stroke-linecap="round"/><line x1="52" y1="68" x2="50" y2="84" stroke="#2c2016" stroke-width="3.5" stroke-linecap="round"/><line x1="62" y1="66" x2="70" y2="82" stroke="#2c2016" stroke-width="3.5" stroke-linecap="round"/><ellipse cx="32" cy="58" rx="17" ry="13" fill="#4a3423"/><circle cx="53" cy="58" r="10" fill="#5a4028"/><circle cx="70" cy="53" r="12" fill="#4a3423"/><path d="M74 44 Q78 34 74 28" stroke="#4a3423" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M66 44 Q64 34 58 30" stroke="#4a3423" stroke-width="3" fill="none" stroke-linecap="round"/><circle cx="74" cy="52" r="4" fill="#fff"/><circle cx="75.5" cy="53" r="2" fill="#222"/></g>` },
+  kaeru: { name:'カエル',
+    fact:'長い したを びゅん！と のばして 虫を つかまえるよ。',
+    wow:'ものを のみこむ とき 目を つぶるよ。目玉を 下げて、のどの おくへ おしこんで いるんだ。',
+    svg:`<g><ellipse cx="50" cy="64" rx="28" ry="20" fill="#58a14e"/><ellipse cx="50" cy="70" rx="18" ry="11" fill="#cfe8b8"/><circle cx="34" cy="42" r="11" fill="#58a14e"/><circle cx="66" cy="42" r="11" fill="#58a14e"/><circle cx="34" cy="40" r="6.5" fill="#fff"/><circle cx="66" cy="40" r="6.5" fill="#fff"/><circle cx="36" cy="41" r="3" fill="#222"/><circle cx="68" cy="41" r="3" fill="#222"/><path d="M40 60 Q50 66 60 60" stroke="#3a7a34" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M24 76 Q14 82 20 86 Q28 88 32 82" fill="#4a8a42"/><path d="M76 76 Q86 82 80 86 Q72 88 68 82" fill="#4a8a42"/></g>` },
+  katatsu: { name:'カタツムリ',
+    fact:'小さな はが 1万本 いじょう！ はっぱを けずって 食べるよ。',
+    wow:'からと 体は くっついて いて、ぬぐ ことは できないよ。ナメクジに なる というのは まちがい。',
+    svg:`<g><path d="M14 78 Q40 70 60 74 Q76 76 78 62 Q80 46 74 40" fill="none" stroke="#e8c99a" stroke-width="13" stroke-linecap="round"/><circle cx="40" cy="52" r="23" fill="#c98d4f"/><path d="M40 52 m0 -17 a17 17 0 1 1 -12 29 a11 11 0 1 0 8 -19 a5 5 0 1 1 4 -10" fill="none" stroke="#9a6633" stroke-width="4" stroke-linecap="round"/><path d="M74 44 Q76 32 72 26 M82 48 Q88 38 86 30" stroke="#e8c99a" stroke-width="4" fill="none" stroke-linecap="round"/><circle cx="72" cy="24" r="4" fill="#e8c99a"/><circle cx="87" cy="28" r="4" fill="#e8c99a"/><circle cx="76" cy="58" r="4" fill="#fff"/><circle cx="77.5" cy="59" r="2" fill="#222"/><path d="M72 68 Q76 70 80 68" stroke="#b09268" stroke-width="2.5" fill="none" stroke-linecap="round"/></g>` },
+  kabuto: { name:'カブトムシ',
+    fact:'木のしるが 大すき。りっぱなツノは オスだけに あるんだよ。',
+    wow:'体の 20ばいの おもさを ひっぱれるよ。人が 車を ひっぱるのと 同じくらいの 力もちだ！',
+    svg:`<g><line x1="30" y1="72" x2="22" y2="84" stroke="#4a3216" stroke-width="4" stroke-linecap="round"/><line x1="48" y1="76" x2="44" y2="88" stroke="#4a3216" stroke-width="4" stroke-linecap="round"/><line x1="64" y1="74" x2="68" y2="86" stroke="#4a3216" stroke-width="4" stroke-linecap="round"/><ellipse cx="46" cy="58" rx="30" ry="21" fill="#7a4a21"/><path d="M20 52 Q46 30 72 50" fill="#8f5a2b"/><circle cx="74" cy="52" r="13" fill="#5d3617"/><path d="M80 44 Q88 30 85 22" stroke="#5d3617" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M85 22 L78 16 M85 22 L93 18" stroke="#5d3617" stroke-width="4" fill="none" stroke-linecap="round"/><circle cx="77" cy="51" r="4.5" fill="#fff"/><circle cx="78.5" cy="52" r="2.2" fill="#222"/><path d="M30 50 Q46 42 62 50" stroke="#5d3617" stroke-width="2" fill="none" opacity=".5"/></g>` },
+  tento: { name:'テントウムシ',
+    fact:'アブラムシを たくさん 食べる 虫。人の やくに 立つよ。',
+    wow:'てんとうむしは 上へ 上へと のぼって いく。てっぺんまで 行くと はねを 広げて とび立つよ。',
+    svg:`<g><line x1="30" y1="72" x2="24" y2="84" stroke="#2e2420" stroke-width="3.5" stroke-linecap="round"/><line x1="46" y1="78" x2="44" y2="88" stroke="#2e2420" stroke-width="3.5" stroke-linecap="round"/><line x1="60" y1="76" x2="64" y2="86" stroke="#2e2420" stroke-width="3.5" stroke-linecap="round"/><ellipse cx="46" cy="58" rx="30" ry="23" fill="#e53935"/><path d="M46 36 L46 80" stroke="#3a2a2a" stroke-width="3.5"/><circle cx="34" cy="50" r="6" fill="#3a2a2a"/><circle cx="58" cy="50" r="6" fill="#3a2a2a"/><circle cx="38" cy="68" r="5" fill="#3a2a2a"/><circle cx="56" cy="68" r="5" fill="#3a2a2a"/><ellipse cx="34" cy="46" rx="7" ry="4" fill="#f4736f" opacity=".5"/><circle cx="74" cy="54" r="12" fill="#3a2a2a"/><path d="M80 46 Q88 36 86 30 M70 45 Q68 36 62 32" stroke="#3a2a2a" stroke-width="3" fill="none" stroke-linecap="round"/><circle cx="78" cy="52" r="4" fill="#fff"/><circle cx="79.5" cy="53" r="2" fill="#222"/></g>` },
+  batta: { name:'バッタ',
+    fact:'うしろ足で 高く とべるよ。体の 20ばいも とぶ ことが ある。',
+    wow:'バッタの 耳は 頭に ないよ。おなかの よこに あるんだ。',
+    svg:`<g><line x1="52" y1="70" x2="48" y2="84" stroke="#558b2f" stroke-width="3.5" stroke-linecap="round"/><line x1="62" y1="70" x2="62" y2="84" stroke="#558b2f" stroke-width="3.5" stroke-linecap="round"/><path d="M38 62 L26 38 L36 36 L48 60 Z" fill="#689f38"/><path d="M28 38 L20 80" stroke="#558b2f" stroke-width="4.5" fill="none" stroke-linecap="round"/><ellipse cx="48" cy="58" rx="30" ry="14" fill="#8bc34a"/><ellipse cx="44" cy="53" rx="25" ry="8" fill="#9ccc65"/><circle cx="76" cy="52" r="12" fill="#8bc34a"/><path d="M82 44 Q90 34 88 26 M76 42 Q78 32 72 26" stroke="#8bc34a" stroke-width="3" fill="none" stroke-linecap="round"/><circle cx="80" cy="50" r="4.5" fill="#fff"/><circle cx="81.5" cy="51" r="2.2" fill="#222"/></g>` },
+  hachi: { name:'ミツバチ',
+    fact:'花の みつを あつめて はちみつを 作るよ。',
+    wow:'8の字に おどる ダンスで、花の ばしょを なかまに 教えるんだ。',
+    svg:`<g><ellipse cx="40" cy="38" rx="20" ry="11" fill="#eaf6ff" opacity=".85" transform="rotate(-22 40 38)"/><ellipse cx="58" cy="36" rx="17" ry="10" fill="#eaf6ff" opacity=".85" transform="rotate(-10 58 36)"/><ellipse cx="46" cy="60" rx="28" ry="19" fill="#f9c22e"/><ellipse cx="34" cy="60" rx="4" ry="16" fill="#3a2a18"/><ellipse cx="46" cy="60" rx="4" ry="18" fill="#3a2a18"/><ellipse cx="58" cy="60" rx="4" ry="16" fill="#3a2a18"/><path d="M18 60 l-7 -6 M18 60 l-7 6" stroke="#3a2a18" stroke-width="4" fill="none" stroke-linecap="round"/><circle cx="76" cy="54" r="13" fill="#3a2a18"/><path d="M82 44 Q88 34 86 28 M72 43 Q68 34 62 30" stroke="#3a2a18" stroke-width="3" fill="none" stroke-linecap="round"/><circle cx="80" cy="52" r="4.5" fill="#fff"/><circle cx="81.5" cy="53" r="2.2" fill="#222"/></g>` },
+  kamakiri: { name:'カマキリ',
+    fact:'前足の カマで 虫を つかまえる ハンター。',
+    wow:'首を うしろまで 回せる めずらしい 虫。目で えものを ずっと おいかけて いるよ。',
+    svg:`<g><line x1="34" y1="66" x2="26" y2="82" stroke="#689f38" stroke-width="3.5" stroke-linecap="round"/><line x1="46" y1="66" x2="44" y2="84" stroke="#689f38" stroke-width="3.5" stroke-linecap="round"/><ellipse cx="34" cy="60" rx="28" ry="10" fill="#7cb342" transform="rotate(-8 34 60)"/><ellipse cx="58" cy="52" rx="15" ry="10" fill="#8bc34a"/><path d="M66 46 L84 34 L88 44 L72 54 Z" fill="#8bc34a"/><path d="M64 52 L78 42" stroke="#689f38" stroke-width="6" stroke-linecap="round"/><path d="M78 42 L70 34" stroke="#689f38" stroke-width="6" stroke-linecap="round"/><path d="M70 34 l-5 3 l3 -6 z" fill="#558b2f"/><circle cx="82" cy="40" r="4.5" fill="#fff"/><circle cx="83.5" cy="41" r="2.2" fill="#222"/><path d="M86 32 Q92 24 90 18" stroke="#8bc34a" stroke-width="2.5" fill="none" stroke-linecap="round"/></g>` },
+  tonbo: { name:'トンボ',
+    fact:'目が とても 大きくて、うしろにも とべるよ。',
+    wow:'小さな 目が 1万こ いじょう あつまって、あの 大きな 目に なって いるんだ。',
+    svg:`<g><ellipse cx="42" cy="36" rx="26" ry="8" fill="#cfeaf7" opacity=".85" transform="rotate(-12 42 36)"/><ellipse cx="42" cy="72" rx="26" ry="8" fill="#cfeaf7" opacity=".85" transform="rotate(12 42 72)"/><ellipse cx="60" cy="38" rx="19" ry="7" fill="#cfeaf7" opacity=".7" transform="rotate(-8 60 38)"/><ellipse cx="60" cy="70" rx="19" ry="7" fill="#cfeaf7" opacity=".7" transform="rotate(8 60 70)"/><rect x="12" y="50" width="56" height="9" rx="4.5" fill="#4a98b8"/><rect x="12" y="50" width="14" height="9" rx="4.5" fill="#3a7a98"/><circle cx="74" cy="54" r="14" fill="#57a8c8"/><circle cx="79" cy="49" r="5" fill="#fff"/><circle cx="80.5" cy="50" r="2.5" fill="#222"/><circle cx="70" cy="46" r="4" fill="#fff" opacity=".6"/></g>` },
+  kuwagata: { name:'クワガタ',
+    fact:'大きな あごで けんかを するよ。あごが 大きいのは オス。',
+    wow:'おとなに なってから 3年 いじょう 生きる ものも いるよ。虫の 中では とても 長生き。',
+    svg:`<g><line x1="30" y1="72" x2="22" y2="84" stroke="#2e1f14" stroke-width="4" stroke-linecap="round"/><line x1="46" y1="76" x2="44" y2="88" stroke="#2e1f14" stroke-width="4" stroke-linecap="round"/><line x1="60" y1="74" x2="64" y2="86" stroke="#2e1f14" stroke-width="4" stroke-linecap="round"/><ellipse cx="44" cy="58" rx="29" ry="20" fill="#3e2b1c"/><ellipse cx="40" cy="53" rx="23" ry="13" fill="#54402c"/><path d="M44 40 L44 76" stroke="#2a1c12" stroke-width="2.5" opacity=".7"/><circle cx="72" cy="54" r="12" fill="#2e1f14"/><path d="M80 47 Q94 38 88 28" stroke="#2e1f14" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M80 61 Q94 64 90 74" stroke="#2e1f14" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M88 28 l4 5 M90 74 l5 -3" stroke="#2e1f14" stroke-width="4" stroke-linecap="round"/><circle cx="75" cy="51" r="4" fill="#fff"/><circle cx="76.5" cy="52" r="2" fill="#222"/></g>` },
+};
+
+/* ---------------- からくりパーツ ずかん ---------------- */
+const PARTS = {
+  slopeR: { name:'さか',
+    fact:'たまを ころがす 道。とおると いきおいが 1つ ふえるよ。',
+    wow:'すべり台は 高い ところから すべるほど 下で はやく なる。きゅうでも ゆるやかでも、同じ 高さなら 下では ほとんど 同じ はやさに なるんだ。' },
+  plank: { name:'いた',
+    fact:'たいらな 道。1マス すすむ たびに いきおいが 1つ へるよ。',
+    wow:'ころがる ものが だんだん おそく なるのは「まさつ」の せい。つるつるの こおりの 上だと ずっと 遠くまで すべって いくよ。' },
+  rock: { name:'いわ',
+    fact:'うごかせない かべ。よこからは 通れないよ。上を 通ろう。',
+    wow:'大きな 岩も、水や 風に 長い 時間 けずられて、いつかは すなに なるんだ。' },
+  domino: { name:'ドミノ',
+    fact:'たおすのに いきおいを 1つ つかう。となりに ならべると つぎつぎ たおれるよ。',
+    wow:'ドミノは じぶんより すこし 大きい ドミノを たおせる。小さいのから 少しずつ 大きく して いくと、さいごには 家ほどの 大きさも たおせるんだ。' },
+  switch: { name:'スイッチ',
+    fact:'ドミノが たおれて ぶつかると 入るよ。入ると ふたが ひらく。',
+    wow:'スイッチが できる ことは「つながる」「きれる」の 2つだけ。この 2つだけで、けいさんきも ゲームも うごいて いるんだよ。' },
+  lid: { name:'ふた',
+    fact:'たまを ささえる ゆか。スイッチが 入ると ひらいて、たまが 下に おちるよ。',
+    wow:'ものが 下に おちるのは 地きゅうが ひっぱって いるから。おもい ものも かるい ものも おちる はやさは 同じなんだ（羽が ゆっくりなのは 空気の せい）。' },
+};
+const PART_LABEL = { plank:'いた', slopeR:'さか▶', slopeL:'◀さか', domino:'ドミノ', rock:'いわ',
+                     switch:'スイッチ', lid:'ふた', start:'スタート', goal:'ゴール' };
+const ZUKAN_PART_ORDER = ['slopeR','plank','rock','domino','switch','lid'];
+
+/* ---------------- 部品と 盤面 ---------------- */
+function makePart(t) {
+  if (t === 'plank')  return { t:'plank' };
+  if (t === 'slopeL') return { t:'slope', d:-1 };
+  if (t === 'slopeR') return { t:'slope', d:1 };
+  if (t === 'rock')   return { t:'rock' };
+  if (t === 'domino') return { t:'domino', up:true };
+  if (t === 'switch') return { t:'switch', on:false };
+  if (t === 'lid')    return { t:'lid' };
+  return null;
+}
+function partKey(c) {
+  if (!c) return null;
+  if (c.t === 'slope') return c.d > 0 ? 'slopeR' : 'slopeL';
+  return c.t;
+}
+function isSolid(c) {
+  if (!c) return false;
+  if (c.t === 'domino') return c.up;
+  return c.t === 'plank' || c.t === 'slope' || c.t === 'rock' || c.t === 'switch' || c.t === 'lid';
+}
+function buildBoard(level, placements) {
+  const b = [];
+  for (let y = 0; y < level.h; y++) b.push(new Array(level.w).fill(null));
+  (level.fixed || []).forEach(f => { if (b[f.y]) b[f.y][f.x] = makePart(f.t); });
+  (placements || []).forEach(p => { if (b[p.y]) b[p.y][p.x] = makePart(p.t); });
+  return b;
+}
+function canPlace(level, board, x, y) {
+  if (x < 0 || y < 0 || x >= level.w || y >= level.h) return false;
+  if (x === level.start.x && y === level.start.y) return false;
+  if (x === level.goal.x && y === level.goal.y) return false;
+  return board[y][x] === null;
+}
+
+/* =====================================================================
+   物理シミュレーション（純ロジック。UIと selftest が 共用する）
+   ・下が 空 → おちる（いきおい +1）
+   ・下が さか → さかの むきへ 1マス（いきおい +1）
+   ・下が たいら → いきおいが あれば 1マス すすむ（いきおい -1）
+   ・立ちドミノに ぶつかる → たおす（いきおい -1）。たおれた ドミノは となりへ 伝わる
+   ・ドミノが スイッチに とどく → ふたが ひらく
+===================================================================== */
+function* runSim(level, placements) {
+  const board = buildBoard(level, placements);
+  const W = level.w, H = level.h;
+  const ball = { x: level.start.x, y: level.start.y, dir: 0, e: 0 };
+  let pending = [];
+  const at = (x, y) => (x < 0 || y < 0 || x >= W || y >= H) ? undefined : board[y][x];
+  const isGoal = (x, y) => x === level.goal.x && y === level.goal.y;
+  const stop = () => { ball.dir = 0; ball.e = 0; };
+
+  yield { k:'init', ball:{ ...ball } };
+
+  for (let tick = 0; tick < TICK_LIMIT; tick++) {
+    /* --- ドミノの 連鎖 --- */
+    if (pending.length) {
+      const evs = pending; pending = [];
+      for (const ev of evs) {
+        const tx = ev.x + ev.d, ty = ev.y;
+        if (tx < 0 || tx >= W) continue;
+        const c = board[ty][tx];
+        if (c && c.t === 'domino' && c.up) {
+          c.up = false; c.fd = ev.d;
+          pending.push({ x:tx, y:ty, d:ev.d });
+          yield { k:'domino', x:tx, y:ty, d:ev.d };
+        } else if (c && c.t === 'switch' && !c.on) {
+          c.on = true;
+          const lids = [];
+          for (let yy = 0; yy < H; yy++) for (let xx = 0; xx < W; xx++) {
+            if (board[yy][xx] && board[yy][xx].t === 'lid') { board[yy][xx] = null; lids.push({ x:xx, y:yy }); }
+          }
+          yield { k:'switch', x:tx, y:ty, lids };
+        } else if (ball.x === tx && ball.y === ty) {
+          ball.dir = ev.d; ball.e = Math.max(ball.e, 2);
+          yield { k:'push', x:tx, y:ty, d:ev.d };
+        }
+      }
+    }
+
+    /* --- たま --- */
+    if (isGoal(ball.x, ball.y)) { yield { k:'clear', ball:{ ...ball } }; return; }
+
+    let acted = false;
+    const by = ball.y + 1;
+    if (by >= H) { yield { k:'fail', why:'outside' }; return; }
+    const below = at(ball.x, by);
+
+    if (isGoal(ball.x, by) || !isSolid(below)) {
+      ball.y = by;
+      if (!isGoal(ball.x, by)) ball.e = Math.min(ball.e + 1, EMAX);
+      acted = true;
+      yield { k:'move', ball:{ ...ball }, how:'fall' };
+    } else if (below.t === 'domino' && below.up && ball.dir !== 0) {
+      below.up = false; below.fd = ball.dir;
+      pending.push({ x:ball.x, y:by, d:ball.dir });
+      acted = true;
+      yield { k:'domino', x:ball.x, y:by, d:ball.dir, byBall:true };
+    } else {
+      let dir = ball.dir, gain = -1;
+      if (below.t === 'slope') { dir = below.d; ball.dir = dir; gain = 1; }
+      if (dir === 0 || (gain < 0 && ball.e === 0)) {
+        stop();
+      } else {
+        const nx = ball.x + dir;
+        if (nx < 0 || nx >= W) { yield { k:'fail', why:'outside' }; return; }
+        const f = at(nx, ball.y);
+        if (isGoal(nx, ball.y)) {
+          ball.x = nx; acted = true;
+          yield { k:'move', ball:{ ...ball }, how:'roll' };
+        } else if (f && f.t === 'domino' && f.up) {
+          f.up = false; f.fd = dir;
+          pending.push({ x:nx, y:ball.y, d:dir });
+          ball.e = Math.max(0, ball.e - 1);
+          acted = true;
+          yield { k:'domino', x:nx, y:ball.y, d:dir, byBall:true };
+        } else if (isSolid(f)) {
+          stop(); yield { k:'bump', ball:{ ...ball } };
+        } else {
+          ball.x = nx; ball.e = Math.max(0, Math.min(ball.e + gain, EMAX));
+          acted = true;
+          yield { k:'move', ball:{ ...ball }, how: gain > 0 ? 'slide' : 'roll' };
+        }
+      }
+    }
+    if (!acted && pending.length === 0) { yield { k:'stop', ball:{ ...ball } }; yield { k:'fail', why:'stop' }; return; }
+  }
+  yield { k:'fail', why:'toolong' };
+}
+function simulate(level, placements) {
+  let steps = 0;
+  for (const ev of runSim(level, placements)) {
+    if (ev.k === 'move') steps++;
+    if (ev.k === 'clear') return { result:'clear', steps };
+    if (ev.k === 'fail')  return { result:'fail-' + ev.why, steps };
+  }
+  return { result:'fail-toolong', steps };
+}
+
+/* ---------------- しま と めん ---------------- */
+const P_BASIC = ['slopeR','slopeL','plank'];
+const P_DOM   = ['slopeR','slopeL','plank','domino'];
+const P_FREE  = ['slopeR','slopeL','plank','domino','rock','switch','lid','start','goal'];
+const row = (y, x0, x1, t) => { const a = []; for (let x = x0; x <= x1; x++) a.push({ x, y, t: t || 'rock' }); return a; };
+
+const ISLANDS = [
+  { id:1, icon:'⛰️', name:'ころがる しま', sub:'さかと いたで たまの 道を 作ろう', levels:[
+    { id:'1-1', name:'ころがして とどけよう', creature:'risu', part:'slopeR',
+      w:7, h:5, start:{x:1,y:0}, goal:{x:5,y:3}, fixed: row(4,0,6),
+      palette:P_BASIC, par:1, maxParts:4,
+      goal_:'さかを おいて、リスまで どんぐりを ころがそう',
+      hint:'どんぐりが おちて くる まっすぐ 下に「さか▶」を おくよ',
+      speak:'さかを おいて、りすまで どんぐりを ころがそう' },
+    { id:'1-2', name:'ひだりへ ころがそう', creature:'dango', part:null,
+      w:9, h:6, start:{x:7,y:0}, goal:{x:0,y:4}, fixed: row(5,0,2).concat(row(5,4,8)),
+      palette:P_BASIC, par:2, maxParts:5,
+      goal_:'左へ ころがそう。とちゅうの あなにも 気を つけて',
+      hint:'あなの ところに もう1つ「◀さか」を おくと、いきおいが ふえて 遠くまで いくよ',
+      speak:'ひだりへ ころがそう。とちゅうの あなにも きを つけて' },
+    { id:'1-3', name:'いたで はしを かけよう', creature:'ari', part:'plank',
+      w:8, h:5, start:{x:1,y:0}, goal:{x:6,y:3}, fixed: row(4,0,2).concat(row(4,5,7)),
+      palette:P_BASIC, par:3, maxParts:6,
+      goal_:'あなに いたを かけて、アリまで わたそう',
+      hint:'あなの 下に「いた」を 2まい ならべて 道に するよ',
+      speak:'あなに いたを かけて、ありまで わたそう' },
+    { id:'1-4', name:'あなが ふたつ', creature:'kaeru', part:null,
+      w:10, h:6, start:{x:1,y:0}, goal:{x:9,y:4},
+      fixed: row(5,0,2).concat(row(5,4,6)).concat(row(5,8,9)),
+      palette:P_BASIC, par:3, maxParts:6,
+      goal_:'あなが 2つ。さかと いたを つかい分けよう',
+      hint:'1つ目の あなは「さか」。いたに すると いきおいが たりなく なるよ',
+      speak:'あなが ふたつ。さかと いたを つかいわけよう' },
+    { id:'1-5', name:'いわを こえて', creature:'katatsu', part:'rock',
+      w:9, h:6, start:{x:1,y:0}, goal:{x:7,y:4},
+      fixed: row(5,0,8).concat([{x:4,y:4,t:'rock'},{x:4,y:3,t:'rock'}]),
+      palette:P_BASIC, par:3, maxParts:6,
+      goal_:'いわが じゃま。上の 道を 作って こえよう',
+      hint:'高い ところに「いた」を ならべて、いわの 上を 通すよ',
+      speak:'いわが じゃま。うえの みちを つくって こえよう' },
+    { id:'1-6', name:'したへ したへ', creature:'kabuto', part:null,
+      w:11, h:7, start:{x:1,y:0}, goal:{x:9,y:5},
+      fixed: row(6,0,7).concat(row(6,9,10)).concat([{x:5,y:5,t:'rock'},{x:5,y:4,t:'rock'}]),
+      palette:P_BASIC, par:5, maxParts:9,
+      goal_:'高い 道と さかを 組み合わせて ゴールまで',
+      hint:'はじめは 高い ところを いたで わたる。いわを こえたら 下に おとして ころがすよ',
+      speak:'たかい みちと さかを くみあわせて ごーるまで' },
+  ]},
+  { id:2, icon:'🎲', name:'ドミノの しま', sub:'ドミノで スイッチを おして ふたを ひらこう', levels:[
+    { id:'2-1', name:'ドミノで スイッチを おそう', creature:'tento', part:'domino',
+      w:9, h:5, start:{x:1,y:0}, goal:{x:4,y:4},
+      fixed: row(3,0,3).concat(row(3,5,8)).concat([{x:4,y:3,t:'lid'},{x:7,y:2,t:'switch'}]),
+      palette:P_DOM, par:3, maxParts:7,
+      goal_:'たまは ふたの 上で 止まる。ドミノで スイッチを おして ふたを ひらこう',
+      hint:'たおれた ドミノは となりしか たおせない。スイッチまで つながるように ならべてね',
+      speak:'たまは ふたの うえで とまる。どみので すいっちを おして ふたを ひらこう' },
+    { id:'2-2', name:'あいだを つなごう', creature:'batta', part:'switch',
+      w:11, h:6, start:{x:1,y:0}, goal:{x:5,y:5},
+      fixed: row(4,0,4).concat(row(4,6,10))
+        .concat([{x:5,y:4,t:'lid'},{x:9,y:3,t:'switch'},{x:6,y:3,t:'domino'},{x:8,y:3,t:'domino'}]),
+      palette:P_DOM, par:2, maxParts:6,
+      goal_:'ドミノの あいだが あいて いるよ。つないで スイッチまで とどけよう',
+      hint:'ドミノと ドミノの あいだの すきまを 1つ うめるだけで いいよ',
+      speak:'どみのの あいだが あいて いるよ。つないで すいっちまで とどけよう' },
+    { id:'2-3', name:'ひだりへ たおそう', creature:'hachi', part:null,
+      w:11, h:6, start:{x:8,y:0}, goal:{x:4,y:5},
+      fixed: row(4,0,3).concat(row(4,5,10)).concat([{x:4,y:4,t:'lid'},{x:1,y:3,t:'switch'}]),
+      palette:P_DOM, par:3, maxParts:8,
+      goal_:'スイッチは 左。ドミノも 左に たおそう',
+      hint:'たまが 左へ ころがると、ドミノも 左へ たおれる。さかを 高い ところに おくと たまは 早く 止まるよ',
+      speak:'すいっちは ひだり。どみのも ひだりに たおそう' },
+    { id:'2-4', name:'ならべて つなげよう', creature:'kamakiri', part:'lid',
+      w:12, h:5, start:{x:1,y:0}, goal:{x:4,y:4},
+      fixed: row(3,0,3).concat(row(3,5,11)).concat([{x:4,y:3,t:'lid'},{x:10,y:2,t:'switch'}]),
+      palette:P_DOM, par:6, maxParts:10,
+      goal_:'スイッチは ずっと 遠く。ドミノを 長く ならべよう',
+      hint:'ドミノは 1本 たおすだけで、さいごまで つぎつぎ たおれて いくよ',
+      speak:'すいっちは ずっと とおく。どみのを ながく ならべよう' },
+    { id:'2-5', name:'とおくの スイッチ', creature:'tonbo', part:null,
+      w:12, h:6, start:{x:1,y:0}, goal:{x:5,y:5},
+      fixed: row(4,0,2).concat(row(4,6,11)).concat([{x:5,y:4,t:'lid'},{x:10,y:3,t:'switch'}]),
+      palette:P_DOM, par:7, maxParts:11,
+      goal_:'いたで 道を 作って、それから ドミノを ならべよう',
+      hint:'まず あなに いたを かける。たまは ふたの 上で 止まるよ',
+      speak:'いたで みちを つくって、それから どみのを ならべよう' },
+    { id:'2-6', name:'しあげの からくり', creature:'kuwagata', part:null,
+      w:12, h:7, start:{x:1,y:0}, goal:{x:6,y:6},
+      fixed: row(5,0,11).concat([{x:4,y:4,t:'rock'},{x:4,y:3,t:'rock'},
+        {x:6,y:5,t:'lid'},{x:10,y:4,t:'switch'},{x:7,y:4,t:'domino'},{x:9,y:4,t:'domino'}]),
+      palette:P_DOM, par:4, maxParts:9,
+      goal_:'いわを こえて、ドミノの すきまを うめて、スイッチを おそう',
+      hint:'上の 道を いたで 作る。ドミノの あいだが 1つ たりないよ',
+      speak:'いわを こえて、どみのの すきまを うめて、すいっちを おそう' },
+  ]},
+  { id:3, icon:'🎨', name:'じゆう工作の しま', sub:'じぶんの からくりを 作って ためそう', free:true, levels:[] },
+];
+const ALL_LEVELS = [];
+ISLANDS.forEach((is, ii) => is.levels.forEach((lv, li) => { lv.island = ii; lv.index = li; ALL_LEVELS.push(lv); }));
+
+/* 想定解（selftestが 使う） */
+const SOLUTIONS = {
+  '1-1': () => [{x:1,y:3,t:'slopeR'}],
+  '1-2': () => [{x:7,y:4,t:'slopeL'},{x:3,y:5,t:'slopeL'}],
+  '1-3': () => [{x:1,y:3,t:'slopeR'},{x:3,y:4,t:'plank'},{x:4,y:4,t:'plank'}],
+  '1-4': () => [{x:1,y:4,t:'slopeR'},{x:3,y:5,t:'slopeR'},{x:7,y:5,t:'plank'}],
+  '1-5': () => [{x:1,y:2,t:'slopeR'},{x:2,y:3,t:'plank'},{x:3,y:3,t:'plank'}],
+  '1-6': () => [{x:1,y:4,t:'slopeR'},{x:2,y:4,t:'plank'},{x:3,y:4,t:'plank'},{x:4,y:4,t:'plank'},{x:8,y:6,t:'slopeR'}],
+  '2-1': () => [{x:1,y:2,t:'slopeR'},{x:5,y:2,t:'domino'},{x:6,y:2,t:'domino'}],
+  '2-2': () => [{x:1,y:3,t:'slopeR'},{x:7,y:3,t:'domino'}],
+  '2-3': () => [{x:8,y:1,t:'slopeL'},{x:3,y:3,t:'domino'},{x:2,y:3,t:'domino'}],
+  '2-4': () => [{x:1,y:2,t:'slopeR'},{x:5,y:2,t:'domino'},{x:6,y:2,t:'domino'},
+                {x:7,y:2,t:'domino'},{x:8,y:2,t:'domino'},{x:9,y:2,t:'domino'}],
+  '2-5': () => [{x:1,y:3,t:'slopeR'},{x:3,y:4,t:'plank'},{x:4,y:4,t:'plank'},
+                {x:6,y:3,t:'domino'},{x:7,y:3,t:'domino'},{x:8,y:3,t:'domino'},{x:9,y:3,t:'domino'}],
+  '2-6': () => [{x:1,y:2,t:'slopeR'},{x:2,y:3,t:'plank'},{x:3,y:3,t:'plank'},{x:8,y:4,t:'domino'}],
+};
+
+/* ---------------- 画面の 文（漢字チェックの たいしょう） ---------------- */
+const UI = {
+  runEmpty:  'ぶひんを おいてから ▶スタートだよ',
+  failStop:  'あれれ？ とちゅうで 止まっちゃった',
+  failOut:   'あれれ？ 外に おちちゃった',
+  failLong:  'あれれ？ ぐるぐる して いるみたい',
+  bumpMsg:   'かべに ぶつかったよ',
+  full:      'これ いじょうは おけないよ',
+  lockLv:    'まえの めんを クリアすると あくよ！',
+  lockIs:    'まえの しまを ぜんぶ クリアすると あくよ！',
+  freeNoGoal:'ゴールの 生きものを えらんでね',
+  saved:     'ほぞん したよ',
+  loaded:    'よみこんだよ',
+  tutorial:  '下の ボタンで ぶひんを えらんで、ますを タップして おこう',
+};
+
+/* ---------------- 保存 ---------------- */
+function defaultSave() {
+  return { schema:DATA_SCHEMA, version:APP_VERSION, cleared:{}, zukan:[], parts:[],
+           settings:{ mute:false, fast:false }, free:{ map:null, slots:[null,null,null] } };
+}
+function loadSave() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return defaultSave();
+    const d = JSON.parse(raw);
+    if (!d || typeof d !== 'object' || !d.cleared) return defaultSave();
+    d.schema = d.schema || DATA_SCHEMA;
+    d.zukan = Array.isArray(d.zukan) ? d.zukan : [];
+    d.parts = Array.isArray(d.parts) ? d.parts : [];
+    d.settings = d.settings || {};
+    if (typeof d.settings.mute !== 'boolean') d.settings.mute = false;
+    if (typeof d.settings.fast !== 'boolean') d.settings.fast = false;
+    d.free = d.free || { map:null, slots:[null,null,null] };
+    if (!Array.isArray(d.free.slots)) d.free.slots = [null,null,null];
+    while (d.free.slots.length < 3) d.free.slots.push(null);
+    return d;
+  } catch (e) { return defaultSave(); }
+}
+function persist() {
+  try { SAVE.version = APP_VERSION; localStorage.setItem(STORAGE_KEY, JSON.stringify(SAVE)); } catch (e) {}
+}
+let SAVE = loadSave();
+if (navigator.storage && navigator.storage.persist) { navigator.storage.persist().catch(() => {}); }
+
+/* ---------------- サウンド ---------------- */
+let audioCtx = null;
+function beep(freq, dur, type, vol, when) {
+  if (SAVE.settings.mute) return;
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const t = audioCtx.currentTime + (when || 0);
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type = type || 'sine'; o.frequency.value = freq;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(vol || 0.12, t + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start(t); o.stop(t + dur + 0.05);
+  } catch (e) {}
+}
+const SFX = {
+  tap:   () => beep(660, 0.07, 'sine', 0.08),
+  put:   () => beep(520, 0.08, 'triangle', 0.09),
+  del:   () => beep(320, 0.07, 'sine', 0.07),
+  roll:  () => beep(400, 0.05, 'triangle', 0.05),
+  fall:  () => beep(300, 0.06, 'sine', 0.05),
+  slide: () => beep(560, 0.07, 'triangle', 0.07),
+  domino:() => beep(240, 0.07, 'square', 0.05),
+  push:  () => beep(180, 0.12, 'square', 0.07),
+  swon:  () => { beep(880, 0.09, 'square', 0.08); beep(1320, 0.12, 'sine', 0.07, 0.07); },
+  open:  () => beep(200, 0.25, 'sawtooth', 0.06),
+  fail:  () => beep(170, 0.3, 'sine', 0.1),
+  clear: () => { [523,659,784,1047].forEach((f,i) => beep(f, 0.22, 'sine', 0.11, i*0.13)); },
+};
+function speak(text) {
+  if (SAVE.settings.mute) return;
+  try {
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'ja-JP'; u.rate = 0.9; u.pitch = 1.1;
+    speechSynthesis.speak(u);
+  } catch (e) {}
+}
+
+/* ---------------- 画面 ---------------- */
+const $ = id => document.getElementById(id);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  $('screen-' + name).classList.add('active');
+}
+function creatureSVG(key, size) {
+  const c = CREATURES[key] || CREATURES.risu;
+  return `<svg viewBox="0 0 100 100" width="${size||64}" height="${size||64}" xmlns="http://www.w3.org/2000/svg">${c.svg}</svg>`;
+}
+
+/* ---------------- 部品の 絵 ---------------- */
+function partArt(t) {
+  switch (t) {
+    case 'plank':
+      return `<rect x="2" y="2" width="96" height="24" rx="7" fill="var(--p-plank)" stroke="var(--wood-d)" stroke-width="3"/>
+              <line x1="16" y1="14" x2="40" y2="14" stroke="#a9773c" stroke-width="3" stroke-linecap="round"/>
+              <line x1="58" y1="14" x2="84" y2="14" stroke="#a9773c" stroke-width="3" stroke-linecap="round"/>`;
+    case 'slopeR':
+      return `<path d="M3 3 L97 93 L3 93 Z" fill="var(--p-slope)" stroke="var(--wood-d)" stroke-width="3" stroke-linejoin="round"/>
+              <path d="M8 8 L90 86" stroke="#f6dcae" stroke-width="9" stroke-linecap="round"/>`;
+    case 'slopeL':
+      return `<path d="M97 3 L3 93 L97 93 Z" fill="var(--p-slope)" stroke="var(--wood-d)" stroke-width="3" stroke-linejoin="round"/>
+              <path d="M92 8 L10 86" stroke="#f6dcae" stroke-width="9" stroke-linecap="round"/>`;
+    case 'rock':
+      return `<ellipse cx="50" cy="62" rx="46" ry="36" fill="var(--p-rock)"/>
+              <ellipse cx="40" cy="48" rx="32" ry="24" fill="#aaa39a"/>
+              <ellipse cx="32" cy="40" rx="10" ry="6" fill="#c2bbb2"/>`;
+    case 'domino':
+      return `<rect x="34" y="16" width="32" height="84" rx="6" fill="var(--p-domino)" stroke="#3a6ba8" stroke-width="3"/>
+              <circle cx="50" cy="40" r="6" fill="#dff0ff"/><circle cx="50" cy="72" r="6" fill="#dff0ff"/>`;
+    case 'switch':
+      return `<rect x="34" y="46" width="32" height="54" rx="5" fill="#8a8f98" stroke="#6a6f78" stroke-width="3"/>
+              <rect class="swbtn" x="16" y="22" width="68" height="26" rx="13" fill="var(--p-switch)" stroke="#a03a3a" stroke-width="3"/>`;
+    case 'lid':
+      return `<rect x="2" y="3" width="96" height="24" rx="6" fill="var(--p-lid)" stroke="#8a7440" stroke-width="3"/>
+              <line x1="50" y1="3" x2="50" y2="27" stroke="#8a7440" stroke-width="4"/>
+              <circle cx="38" cy="15" r="3.5" fill="#8a7440"/><circle cx="62" cy="15" r="3.5" fill="#8a7440"/>`;
+    case 'start':
+      return `<rect x="8" y="8" width="84" height="84" rx="14" fill="none" stroke="#5aa8e8" stroke-width="5" stroke-dasharray="10 8"/>
+              <text x="50" y="62" font-size="40" text-anchor="middle">🌰</text>`;
+    case 'goal':
+      return `<circle cx="50" cy="50" r="42" fill="#ffe9c0" stroke="#e0a95f" stroke-width="4"/>
+              <text x="50" y="66" font-size="44" text-anchor="middle">🎯</text>`;
+    default: return '';
+  }
+}
+function partIcon(t, size) {
+  return `<svg viewBox="0 0 100 100" width="${size||34}" height="${size||34}" xmlns="http://www.w3.org/2000/svg">${partArt(t)}</svg>`;
+}
+const ACORN = `<g>
+  <ellipse cx="0" cy="5" rx="26" ry="24" fill="#c9924f" stroke="#8f6330" stroke-width="3"/>
+  <ellipse cx="-9" cy="1" rx="7" ry="5" fill="#e6bd85" opacity=".8"/>
+  <path d="M-28 -8 q28 -19 56 0 q-28 11 -56 0 z" fill="#7a4f22"/>
+  <path d="M0 -16 q3 -12 9 -16" stroke="#7a4f22" stroke-width="5" fill="none" stroke-linecap="round"/>
+</g>`;
+
+/* ---------------- しま えらび ---------------- */
+function levelCleared(id) { return !!(SAVE.cleared[id] && SAVE.cleared[id].clear); }
+function islandDone(ii) {
+  const is = ISLANDS[ii];
+  return is.levels.length > 0 && is.levels.every(lv => levelCleared(lv.id));
+}
+function islandUnlocked(ii) { return ii === 0 ? true : islandDone(ii - 1); }
+function levelUnlocked(lv) {
+  if (!islandUnlocked(lv.island)) return false;
+  if (lv.index === 0) return true;
+  return levelCleared(ISLANDS[lv.island].levels[lv.index - 1].id);
+}
+function renderIslands() {
+  const wrap = $('island-list');
+  wrap.innerHTML = '';
+  ISLANDS.forEach((is, ii) => {
+    const open = islandUnlocked(ii);
+    const b = document.createElement('button');
+    b.className = 'is-btn' + (open ? '' : ' locked');
+    const done = is.levels.filter(lv => levelCleared(lv.id)).length;
+    const prog = is.free
+      ? (open ? '🎨 いつでも あそべる' : '🔒 しま2まで クリアで あく')
+      : (open ? '⭐'.repeat(done) + '・'.repeat(is.levels.length - done) : '🔒');
+    b.innerHTML = `<span class="is-icon">${is.icon}</span><span class="is-name">${is.name}</span>` +
+                  `<span class="is-sub">${is.sub}</span><span class="is-prog">${prog}</span>`;
+    b.addEventListener('click', () => {
+      if (!open) { SFX.fail(); showToast(UI.lockIs); return; }
+      SFX.tap();
+      if (is.free) { openFree(); } else { renderMap(ii); showScreen('map'); }
+    });
+    wrap.appendChild(b);
+  });
+}
+function showToast(msg) {
+  const b = $('bubble');
+  b.textContent = msg;
+  b.style.position = 'fixed'; b.style.bottom = '30px';
+  b.classList.add('show');
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => { b.classList.remove('show'); b.style.position = ''; b.style.bottom = ''; }, 2000);
+}
+$('btn-start').addEventListener('click', () => { SFX.tap(); renderIslands(); showScreen('islands'); });
+$('btn-zukan').addEventListener('click', () => { SFX.tap(); renderZukan(); showScreen('zukan'); });
+$('btn-zukan-back').addEventListener('click', () => { SFX.tap(); renderIslands(); showScreen('islands'); });
+$('btn-parent').addEventListener('click', () => { SFX.tap(); showScreen('parent'); });
+$('btn-parent-back').addEventListener('click', () => { SFX.tap(); renderIslands(); showScreen('islands'); });
+$('btn-map-back').addEventListener('click', () => { SFX.tap(); renderIslands(); showScreen('islands'); });
+
+/* ---------------- めん えらび ---------------- */
+let CUR_ISLAND = 0;
+function renderMap(ii) {
+  CUR_ISLAND = ii;
+  const is = ISLANDS[ii];
+  $('map-title').textContent = is.icon + ' ' + is.name;
+  const wrap = $('map-levels');
+  wrap.innerHTML = '';
+  is.levels.forEach((lv, li) => {
+    const open = levelUnlocked(lv);
+    const b = document.createElement('button');
+    b.className = 'lv-btn' + (open ? '' : ' locked');
+    const rec = SAVE.cleared[lv.id] || {};
+    const badges = (rec.clear ? '⭐' : '') + (rec.perfect ? '🏅' : '');
+    b.innerHTML = `<span class="lv-num">ステージ${li+1}</span>${creatureSVG(lv.creature, 58)}` +
+                  `<span class="lv-name">${lv.name}</span><span class="lv-badges">${badges}</span>`;
+    b.addEventListener('click', () => {
+      if (!open) { SFX.fail(); showToast(UI.lockLv); return; }
+      SFX.tap(); startLevel(lv);
+    });
+    wrap.appendChild(b);
+  });
+}
+
+/* ---------------- ずかん ---------------- */
+function renderZukan() {
+  const grid = $('zukan-grid');
+  grid.innerHTML = '';
+  const gotP = ZUKAN_PART_ORDER.filter(k => SAVE.parts.includes(k)).length;
+  const gotC = Object.keys(CREATURES).filter(k => SAVE.zukan.includes(k)).length;
+  $('zukan-title').textContent = `📖 ずかん（からくり ${gotP}／${ZUKAN_PART_ORDER.length}・生きもの ${gotC}／${Object.keys(CREATURES).length}）`;
+
+  const sec1 = document.createElement('div');
+  sec1.className = 'zk-sec'; sec1.textContent = '⚙️ からくりパーツ';
+  grid.appendChild(sec1);
+  const row1 = document.createElement('div'); row1.className = 'zk-row';
+  ZUKAN_PART_ORDER.forEach(k => {
+    const p = PARTS[k], known = SAVE.parts.includes(k);
+    const div = document.createElement('div');
+    div.className = 'zk-card' + (known ? '' : ' unknown');
+    div.innerHTML = known
+      ? `${partIcon(k, 62)}<div class="zk-name">${p.name}</div><div class="zk-fact">${p.fact}</div>` +
+        `<div class="zk-wow">🔎 ${p.wow}</div>`
+      : `${partIcon(k, 62)}<div class="zk-name">？？？</div><div class="zk-fact">クリアすると 手に 入るよ</div>`;
+    if (known) div.addEventListener('click', () => { SFX.tap(); speak(p.name + '。' + p.fact + ' ' + p.wow); });
+    row1.appendChild(div);
+  });
+  grid.appendChild(row1);
+
+  ISLANDS.forEach(is => {
+    if (!is.levels.length) return;
+    const sec = document.createElement('div');
+    sec.className = 'zk-sec';
+    sec.textContent = is.icon + ' ' + is.name + 'で あった 生きもの';
+    grid.appendChild(sec);
+    const row = document.createElement('div'); row.className = 'zk-row';
+    is.levels.forEach(lv => {
+      const k = lv.creature, c = CREATURES[k];
+      const known = SAVE.zukan.includes(k);
+      const div = document.createElement('div');
+      div.className = 'zk-card' + (known ? '' : ' unknown');
+      div.innerHTML = known
+        ? `${creatureSVG(k, 62)}<div class="zk-name">${c.name}</div><div class="zk-fact">${c.fact}</div>` +
+          `<div class="zk-wow">🔎 ${c.wow}</div>`
+        : `${creatureSVG(k, 62)}<div class="zk-name">？？？</div><div class="zk-fact">クリアすると なかま入りするよ</div>`;
+      if (known) div.addEventListener('click', () => { SFX.tap(); speak(c.name + '。' + c.fact + ' ' + c.wow); });
+      row.appendChild(div);
+    });
+    grid.appendChild(row);
+  });
+}
+
+/* =====================================================================
+   ゲーム本体
+===================================================================== */
+let G = null;
+
+function startLevel(level) {
+  G = { level, placed: [], tool: level.palette[0], running:false, failCount:0,
+        free: level.id === 'free' };
+  $('lv-title').textContent = G.free ? '🎨 じぶんの からくり' : `ステージ${level.index + 1}：${level.name}`;
+  $('goal-text').textContent = level.goal_;
+  $('btn-hint').classList.remove('show');
+  $('btn-back').textContent = '← もどる';
+  $('palette2').classList.toggle('show', !!G.free);
+  document.body.classList.remove('showtime');
+  updateMuteBtn(); updateFastBtn();
+  buildPalette();
+  renderStage();
+  renderMeter();
+  showScreen('game');
+  if (level.id === '1-1' && !levelCleared('1-1')) showBubble(UI.tutorial, 4000);
+}
+
+/* --- パレット --- */
+function buildPalette() {
+  const pal = $('palette');
+  pal.innerHTML = '';
+  G.level.palette.forEach(t => {
+    const b = document.createElement('button');
+    b.className = 'part-btn' + (G.tool === t ? ' sel' : '');
+    b.dataset.tool = t;
+    b.innerHTML = partIcon(t) + `<span>${PART_LABEL[t]}</span>`;
+    b.addEventListener('click', () => { SFX.tap(); G.tool = t; buildPalette(); });
+    pal.appendChild(b);
+  });
+}
+
+/* --- ステージ描画 --- */
+function stageMarkup(level, placed) {
+  const W = level.w, H = level.h;
+  const board = buildBoard(level, placed);
+  let s = '';
+  s += `<defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="var(--sky1)"/><stop offset="100%" stop-color="var(--sky2)"/></linearGradient></defs>`;
+  s += `<rect x="0" y="0" width="${W*CELL}" height="${H*CELL}" fill="url(#sky)"/>`;
+  s += `<g stroke="rgba(120,160,190,.22)" stroke-width="2">`;
+  for (let x = 1; x < W; x++) s += `<line x1="${x*CELL}" y1="0" x2="${x*CELL}" y2="${H*CELL}"/>`;
+  for (let y = 1; y < H; y++) s += `<line x1="0" y1="${y*CELL}" x2="${W*CELL}" y2="${y*CELL}"/>`;
+  s += `</g>`;
+  // スタートの めじるし
+  s += `<g transform="translate(${level.start.x*CELL},${level.start.y*CELL})" opacity=".85">
+        <rect x="8" y="8" width="84" height="84" rx="14" fill="none" stroke="#5aa8e8" stroke-width="5" stroke-dasharray="10 8"/></g>`;
+  // ゴール（生きもの）
+  s += `<g transform="translate(${level.goal.x*CELL},${level.goal.y*CELL})">
+        <ellipse cx="50" cy="88" rx="40" ry="10" fill="#f4d9a8" opacity=".8"/>${(CREATURES[level.creature]||CREATURES.risu).svg}</g>`;
+  // 部品
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const c = board[y][x];
+    if (!c) continue;
+    const key = partKey(c);
+    if (key === 'domino') {
+      s += `<g class="tf dom" id="pt-${x}-${y}" style="transform:translate(${x*CELL+50}px,${y*CELL+100}px)">
+            <rect x="-16" y="-84" width="32" height="84" rx="6" fill="var(--p-domino)" stroke="#3a6ba8" stroke-width="3"/>
+            <circle cx="0" cy="-60" r="6" fill="#dff0ff"/><circle cx="0" cy="-28" r="6" fill="#dff0ff"/></g>`;
+    } else if (key === 'lid') {
+      s += `<g class="tf lidg" id="pt-${x}-${y}" style="transform:translate(${x*CELL}px,${y*CELL}px)">${partArt('lid')}</g>`;
+    } else if (key === 'switch') {
+      s += `<g id="pt-${x}-${y}" transform="translate(${x*CELL},${y*CELL})">
+            <rect x="34" y="46" width="32" height="54" rx="5" fill="#8a8f98" stroke="#6a6f78" stroke-width="3"/>
+            <rect id="sw-${x}-${y}" x="16" y="22" width="68" height="26" rx="13" fill="var(--p-switch)" stroke="#a03a3a" stroke-width="3"/></g>`;
+    } else {
+      s += `<g id="pt-${x}-${y}" transform="translate(${x*CELL},${y*CELL})">${partArt(key)}</g>`;
+    }
+  }
+  // たま
+  s += `<g id="ball" class="tf"><g id="ball-rot" class="tf">${ACORN}</g></g>`;
+  // タップ うけつけ
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    s += `<rect class="hit" data-x="${x}" data-y="${y}" x="${x*CELL}" y="${y*CELL}" width="${CELL}" height="${CELL}" fill="transparent"/>`;
+  }
+  return s;
+}
+let BALL_ROT = 0;
+function renderStage() {
+  const lv = G.level;
+  const svg = $('stage');
+  svg.setAttribute('viewBox', `0 0 ${lv.w*CELL} ${lv.h*CELL}`);
+  svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+  svg.innerHTML = stageMarkup(lv, G.placed);
+  BALL_ROT = 0;
+  placeBall(lv.start.x, lv.start.y, true);
+  svg.querySelectorAll('.hit').forEach(r => {
+    r.addEventListener('click', () => onCellTap(+r.dataset.x, +r.dataset.y));
+  });
+  showEnergy(false);
+}
+function placeBall(x, y, instant) {
+  const b = $('ball');
+  if (!b) return;
+  if (instant) b.style.transition = 'none';
+  b.style.transform = `translate(${x*CELL+50}px, ${y*CELL+70}px)`;
+  if (instant) { void b.getBoundingClientRect(); b.style.transition = ''; }
+}
+function rollBall(dir) {
+  BALL_ROT += dir * 90;
+  const r = $('ball-rot');
+  if (r) r.style.transform = `rotate(${BALL_ROT}deg)`;
+}
+function showEnergy(on, e) {
+  const el = $('energy');
+  el.classList.toggle('show', !!on);
+  if (!on) return;
+  let s = '';
+  const n = Math.max(5, e || 0);
+  for (let i = 0; i < n; i++) s += `<span class="edot${i < e ? ' on' : ''}"></span>`;
+  $('energy-dots').innerHTML = s;
+}
+function showBubble(text, ms) {
+  const b = $('bubble');
+  b.innerHTML = text;
+  b.classList.remove('show'); void b.offsetWidth; b.classList.add('show');
+  clearTimeout(showBubble._t);
+  showBubble._t = setTimeout(() => b.classList.remove('show'), ms || 2200);
+}
+
+/* --- 置く / けす --- */
+function placedAt(x, y) { return G.placed.findIndex(p => p.x === x && p.y === y); }
+function onCellTap(x, y) {
+  if (!G || G.running) return;
+  const lv = G.level;
+  if (G.free && (G.tool === 'start' || G.tool === 'goal')) {
+    const other = G.tool === 'start' ? lv.goal : lv.start;
+    if (x === other.x && y === other.y) { SFX.fail(); return; }
+    const i = placedAt(x, y);
+    if (i >= 0) G.placed.splice(i, 1);
+    if (G.tool === 'start') { lv.start = { x, y }; } else { lv.goal = { x, y }; }
+    SFX.put(); renderStage(); saveFreeMap(); return;
+  }
+  const i = placedAt(x, y);
+  if (i >= 0) { G.placed.splice(i, 1); SFX.del(); renderStage(); renderMeter(); if (G.free) saveFreeMap(); return; }
+  const board = buildBoard(lv, G.placed);
+  if (!canPlace(lv, board, x, y)) { SFX.fail(); return; }
+  if (!G.free && G.placed.length >= lv.maxParts) { SFX.fail(); showBubble(UI.full); return; }
+  G.placed.push({ x, y, t: G.tool });
+  SFX.put(); renderStage(); renderMeter();
+  if (G.free) saveFreeMap();
+}
+$('btn-clearall').addEventListener('click', () => {
+  if (!G || G.running) return;
+  SFX.del(); G.placed = []; renderStage(); renderMeter(); if (G.free) saveFreeMap();
+});
+
+/* --- 部品メーター --- */
+function meterInfo(level, n) {
+  const par = level.par, max = level.maxParts || 0;
+  let state, msg;
+  if (n === 0)        { state = 'start'; msg = `ぶひん ${par}こで クリアできるかな？`; }
+  else if (n < par)   { state = 'under'; msg = `🏅まで あと ${par - n}こ つかえるよ`; }
+  else if (n === par) { state = 'par';   msg = '🏅 ぴったり！ うごかしてみよう'; }
+  else                { state = 'over';  msg = `⭐クリアは できるよ！🏅は ${par}こまで`; }
+  if (max && n >= max) { state = 'full'; msg = 'ぶひんは これで いっぱい！'; }
+  return { par, max, state, msg, slots: Math.max(max, par, n) };
+}
+function renderMeter() {
+  const meter = $('meter');
+  if (G.free) { meter.classList.add('hide'); return; }
+  meter.classList.remove('hide');
+  const n = G.placed.length;
+  const info = meterInfo(G.level, n);
+  $('meter-goal').innerHTML = `🏅 <b>いちばん 少ない ぶひん</b>＝<b>${info.par}こ</b>　いま <b>${n}こ</b>`;
+  const wrap = $('meter-slots');
+  wrap.innerHTML = '';
+  for (let i = 0; i < info.slots; i++) {
+    const d = document.createElement('span');
+    let cls = 'mslot';
+    if (i < info.par) cls += ' gold';
+    if (i < n) cls += (i < info.par ? ' used' : ' over');
+    if (i === info.par) cls += ' afterpar';
+    if (info.max && i === info.max - 1) cls += ' wall';
+    d.className = cls;
+    if (i === info.par - 1) d.innerHTML = '<span class="flag">🏅</span>';
+    wrap.appendChild(d);
+  }
+  const m = $('meter-msg');
+  m.textContent = info.msg;
+  m.className = info.state;
+}
+
+/* --- 実行（えんしゅつ） --- */
+async function runPlay(showtime) {
+  if (!G || G.running) return;
+  if (G.placed.length === 0 && !G.free) { showBubble(UI.runEmpty); SFX.fail(); return; }
+  G.running = true;
+  document.body.classList.add('running');
+  if (showtime) document.body.classList.add('showtime');
+  renderStage();
+  const sp = SAVE.settings.fast ? 0.5 : 1;
+  const T = 230 * sp;
+  showEnergy(true, 0);
+  await sleep(200 * sp);
+  let steps = 0, ended = false;
+  for (const ev of runSim(G.level, G.placed)) {
+    if (ev.k === 'init') continue;
+    if (ev.k === 'move') {
+      steps++;
+      if (ev.how !== 'fall') rollBall(ev.ball.dir);
+      placeBall(ev.ball.x, ev.ball.y);
+      showEnergy(true, ev.ball.e);
+      (ev.how === 'fall' ? SFX.fall : ev.how === 'slide' ? SFX.slide : SFX.roll)();
+      await sleep(T);
+    } else if (ev.k === 'domino') {
+      const el = $(`pt-${ev.x}-${ev.y}`);
+      if (el) el.style.transform = `translate(${ev.x*CELL+50}px,${ev.y*CELL+100}px) rotate(${ev.d>0?88:-88}deg)`;
+      SFX.domino();
+      await sleep(T * 0.7);
+    } else if (ev.k === 'switch') {
+      const sw = $(`sw-${ev.x}-${ev.y}`);
+      if (sw) { sw.setAttribute('fill', '#4ec96a'); sw.setAttribute('y', '34'); sw.setAttribute('height', '16'); }
+      SFX.swon();
+      await sleep(T * 0.8);
+      ev.lids.forEach(l => {
+        const el = $(`pt-${l.x}-${l.y}`);
+        if (el) { el.style.transform = `translate(${l.x*CELL}px,${l.y*CELL+70}px) rotate(12deg)`; el.style.opacity = '0'; }
+      });
+      SFX.open();
+      await sleep(T * 0.9);
+    } else if (ev.k === 'push') {
+      SFX.push(); showBubble('ドミノに おされた！', 1200);
+      await sleep(T * 0.8);
+    } else if (ev.k === 'bump') {
+      $('stage').classList.add('stage-shake');
+      setTimeout(() => $('stage').classList.remove('stage-shake'), 420);
+      SFX.fail(); showBubble(UI.bumpMsg, 1400);
+      await sleep(T);
+    } else if (ev.k === 'stop') {
+      showEnergy(true, 0);
+    } else if (ev.k === 'clear') {
+      ended = true; onClear(steps); break;
+    } else if (ev.k === 'fail') {
+      ended = true; onFail(ev.why); break;
+    }
+  }
+  if (!ended) onFail('toolong');
+}
+$('btn-run').addEventListener('click', () => { SFX.tap(); runPlay(false); });
+$('btn-show').addEventListener('click', () => { SFX.tap(); runPlay(true); });
+
+function endRun() {
+  G.running = false;
+  document.body.classList.remove('running');
+  document.body.classList.remove('showtime');
+}
+function onFail(why) {
+  endRun();
+  showEnergy(false);
+  SFX.fail();
+  G.failCount++;
+  if (!G.free && G.failCount >= 3) $('btn-hint').classList.add('show');
+  const msg = why === 'outside' ? UI.failOut : why === 'toolong' ? UI.failLong : UI.failStop;
+  showBubble(msg, 2200);
+  setTimeout(() => { if (G && !G.running) renderStage(); }, 900);
+}
+function onClear(steps) {
+  SFX.clear();
+  endRun();
+  showEnergy(false);
+  const lv = G.level;
+  const n = G.placed.length;
+
+  if (G.free) {
+    $('overlay-title').textContent = '🎉 うごいた！';
+    $('overlay-creature').innerHTML = creatureSVG(lv.creature, 82);
+    $('overlay-badges').textContent = '⭐';
+    $('overlay-msg').innerHTML = `じぶんで 作った からくりが うごいたよ！<br>ぶひん${n}こ・${steps}マス うごいた。`;
+    $('btn-next').style.display = 'none';
+    $('btn-map2').textContent = 'なおす';
+    $('overlay-fact').classList.remove('show');
+    $('overlay').classList.add('show');
+    return;
+  }
+  $('btn-map2').textContent = 'マップへ';
+
+  const perfect = n <= lv.par;
+  const rec = SAVE.cleared[lv.id] || {};
+  const firstClear = !rec.clear;
+  rec.clear = true;
+  if (perfect) rec.perfect = true;
+  SAVE.cleared[lv.id] = rec;
+  const newC = !SAVE.zukan.includes(lv.creature);
+  if (newC) SAVE.zukan.push(lv.creature);
+  const newP = lv.part && !SAVE.parts.includes(lv.part);
+  if (newP) SAVE.parts.push(lv.part);
+  persist();
+
+  $('overlay-title').textContent = '🎉 やったー！';
+  $('overlay-creature').innerHTML = creatureSVG(lv.creature, 82);
+  $('overlay-badges').textContent = '⭐' + (perfect ? ' 🏅' : '');
+  let msg = `ぶひん${n}こで、たまが ${steps}マス うごいて とどいたよ！`;
+  if (steps > n) msg += `<br>ぶひんは たった${n}こなのに ${steps}マス！ からくりって すごいね。`;
+  if (perfect) msg += '<br>🏅 ぴったりしょう！ すごい！';
+  else msg += `<br>ぶひん${lv.par}こまでで クリアすると 🏅が もらえるよ`;
+  if (newC) msg += `<br><b>📖 ずかんに「${CREATURES[lv.creature].name}」が なかま入り！</b>`;
+  if (newP) msg += `<br><b>⚙️ からくりパーツ「${PARTS[lv.part].name}」を 手に 入れた！</b>`;
+  const is = ISLANDS[lv.island];
+  const last = lv.index === is.levels.length - 1;
+  if (last && islandDone(lv.island)) {
+    msg += `<br><b>${is.icon} ${is.name}、ぜんぶ クリア！！</b>`;
+    const next = ISLANDS[lv.island + 1];
+    if (next) msg += `<br>つぎは <b>${next.icon} ${next.name}</b>だ！`;
+  }
+  $('overlay-msg').innerHTML = msg;
+  showWowFact(lv);
+  $('btn-next').style.display = last ? 'none' : '';
+  $('overlay').classList.add('show');
+  if (firstClear) speak('やったー！とどいたよ！ ' + (lv.part ? PARTS[lv.part].wow : CREATURES[lv.creature].wow));
+}
+function showWowFact(lv) {
+  const fx = $('overlay-fact');
+  const src = lv.part ? PARTS[lv.part] : CREATURES[lv.creature];
+  if (!src || !src.wow) { fx.classList.remove('show'); return; }
+  fx.innerHTML = `<div class="of-head"><span>🔎 ${src.name}の とっておきの まめちしき</span>` +
+                 `<button type="button">🔊 読む</button></div><div class="of-body">${src.wow}</div>`;
+  fx.querySelector('button').addEventListener('click', () => { SFX.tap(); speak(src.wow); });
+  fx.classList.add('show');
+}
+
+/* --- ゲーム画面ボタン --- */
+$('btn-back').addEventListener('click', () => {
+  if (G && G.running) return;
+  SFX.tap(); speechSynthesis.cancel();
+  if (G && G.free) { renderIslands(); showScreen('islands'); return; }
+  renderMap(G ? G.level.island : 0); showScreen('map');
+});
+$('btn-speak').addEventListener('click', () => { SFX.tap(); speak(G.level.speak || G.level.goal_); });
+$('btn-hint').addEventListener('click', () => { SFX.tap(); showBubble('💡 ' + G.level.hint, 7000); speak(G.level.hint); });
+$('btn-mute').addEventListener('click', () => {
+  SAVE.settings.mute = !SAVE.settings.mute; persist(); updateMuteBtn();
+  if (SAVE.settings.mute) speechSynthesis.cancel();
+});
+$('btn-fast').addEventListener('click', () => { SFX.tap(); SAVE.settings.fast = !SAVE.settings.fast; persist(); updateFastBtn(); });
+function updateMuteBtn() { $('btn-mute').textContent = SAVE.settings.mute ? '🔇' : '🔈'; }
+function updateFastBtn() { $('btn-fast').textContent = SAVE.settings.fast ? '🐇' : '🐢'; }
+
+$('btn-retry').addEventListener('click', () => {
+  SFX.tap(); $('overlay').classList.remove('show');
+  if (G.free) { renderStage(); return; }
+  const keep = G.placed.slice();
+  startLevel(G.level); G.placed = keep; renderStage(); renderMeter();
+});
+$('btn-map2').addEventListener('click', () => {
+  SFX.tap(); $('overlay').classList.remove('show');
+  if (G.free) { renderStage(); return; }
+  renderMap(G.level.island); showScreen('map');
+});
+$('btn-next').addEventListener('click', () => {
+  SFX.tap(); $('overlay').classList.remove('show');
+  const is = ISLANDS[G.level.island];
+  const nx = is.levels[G.level.index + 1];
+  if (nx) startLevel(nx); else { renderMap(G.level.island); showScreen('map'); }
+});
+
+/* --- モーダル --- */
+function openModal(title, items, onPick) {
+  $('modal-title').textContent = title;
+  const body = $('modal-body');
+  body.innerHTML = '';
+  items.forEach(it => {
+    const b = document.createElement('button');
+    b.innerHTML = it.label;
+    if (it.sel) b.className = 'sel';
+    b.addEventListener('click', () => { SFX.tap(); $('modal').classList.remove('show'); onPick(it.value); });
+    body.appendChild(b);
+  });
+  $('modal').classList.add('show');
+}
+$('modal-cancel').addEventListener('click', () => { SFX.tap(); $('modal').classList.remove('show'); });
+
+/* =====================================================================
+   じゆう工作の しま
+===================================================================== */
+const FREE_SIZES = { s:{w:8,h:5}, m:{w:10,h:6}, l:{w:12,h:7} };
+function defaultFree() {
+  return { w:10, h:6, start:{x:1,y:0}, goal:{x:7,y:4}, creature:'risu',
+           parts: row(5,0,9).map(f => ({ x:f.x, y:f.y, t:'rock' })) };
+}
+function reviveFree(f) {
+  const d = defaultFree();
+  if (!f || typeof f !== 'object') return d;
+  const num = (v, dflt) => Number.isFinite(+v) ? Math.round(+v) : dflt;
+  const w = Math.min(12, Math.max(6, num(f.w, d.w)));
+  const h = Math.min(8,  Math.max(4, num(f.h, d.h)));
+  const cl = (p, dx, dy) => ({ x: Math.min(w-1, Math.max(0, num(p && p.x, dx))),
+                               y: Math.min(h-1, Math.max(0, num(p && p.y, dy))) });
+  const start = cl(f.start, 1, 0);
+  let goal = cl(f.goal, w-2, h-2);
+  if (goal.x === start.x && goal.y === start.y) goal = { x: Math.min(w-1, start.x+1), y: Math.min(h-1, start.y+1) };
+  const ok = ['plank','slopeL','slopeR','domino','rock','switch','lid'];
+  const parts = (Array.isArray(f.parts) ? f.parts : []).filter(p =>
+      p && ok.includes(p.t) && p.x >= 0 && p.x < w && p.y >= 0 && p.y < h &&
+      !(p.x === start.x && p.y === start.y) && !(p.x === goal.x && p.y === goal.y))
+    .map(p => ({ x:p.x|0, y:p.y|0, t:p.t }));
+  const creature = CREATURES[f.creature] ? f.creature : 'risu';
+  return { w, h, start, goal, creature, parts };
+}
+function freeToLevel(f) {
+  return { id:'free', name:'じぶんの からくり', creature:f.creature,
+           w:f.w, h:f.h, start:{ ...f.start }, goal:{ ...f.goal }, fixed:[],
+           palette:P_FREE, par:0, maxParts:999, goal_:'じぶんの からくりを 作って ▶スタート',
+           hint:'', speak:'じぶんの からくりを つくって すたーと' };
+}
+function openFree() {
+  const f = reviveFree(SAVE.free.map || defaultFree());
+  SAVE.free.map = f;
+  const lv = freeToLevel(f);
+  startLevel(lv);
+  G.placed = f.parts.map(p => ({ ...p }));
+  G.tool = 'plank';
+  buildPalette();
+  renderStage();
+  buildFreeBar();
+}
+function saveFreeMap() {
+  if (!G || !G.free) return;
+  SAVE.free.map = { w:G.level.w, h:G.level.h, start:{ ...G.level.start }, goal:{ ...G.level.goal },
+                    creature:G.level.creature, parts:G.placed.map(p => ({ ...p })) };
+  persist();
+}
+function buildFreeBar() {
+  const bar = $('palette2');
+  bar.innerHTML = '';
+  const mk = (label, fn) => {
+    const b = document.createElement('button');
+    b.className = 'util-btn'; b.innerHTML = label;
+    b.addEventListener('click', fn); bar.appendChild(b); return b;
+  };
+  const sp = document.createElement('span'); sp.textContent = 'ひろさ'; bar.appendChild(sp);
+  Object.keys(FREE_SIZES).forEach(k => mk({s:'小',m:'中',l:'大'}[k], () => {
+    SFX.tap();
+    const s = FREE_SIZES[k];
+    G.level.w = s.w; G.level.h = s.h;
+    G.level.start = { x: Math.min(G.level.start.x, s.w-1), y: Math.min(G.level.start.y, s.h-1) };
+    G.level.goal  = { x: Math.min(G.level.goal.x, s.w-1),  y: Math.min(G.level.goal.y, s.h-1) };
+    G.placed = G.placed.filter(p => p.x < s.w && p.y < s.h);
+    renderStage(); saveFreeMap();
+  }));
+  mk('🐾 いきもの', () => {
+    const got = Object.keys(CREATURES).filter(k => SAVE.zukan.includes(k));
+    if (!got.length) { showToast(UI.freeNoGoal); return; }
+    openModal('ゴールの 生きものを えらぼう',
+      got.map(k => ({ label: creatureSVG(k, 44), value:k, sel: k === G.level.creature })),
+      k => { G.level.creature = k; renderStage(); saveFreeMap(); });
+  });
+  mk('💾 ほぞん', () => {
+    openModal('どこに ほぞんする？',
+      SAVE.free.slots.map((s, i) => ({ label: `${i+1}<br>${s ? 'あり' : 'から'}`, value:i })),
+      i => {
+        saveFreeMap();
+        SAVE.free.slots[i] = JSON.parse(JSON.stringify(SAVE.free.map));
+        persist(); showToast(UI.saved);
+      });
+  });
+  mk('📂 よみこむ', () => {
+    openModal('どれを よみこむ？',
+      SAVE.free.slots.map((s, i) => ({ label: `${i+1}<br>${s ? 'あり' : 'から'}`, value:i })),
+      i => {
+        const s = SAVE.free.slots[i];
+        if (!s) { SFX.fail(); return; }
+        SAVE.free.map = reviveFree(s); persist();
+        openFree(); showToast(UI.loaded);
+      });
+  });
+}
+
+/* ---------------- バックアップ ---------------- */
+$('btn-export').addEventListener('click', () => {
+  const blob = new Blob([JSON.stringify(SAVE, null, 2)], { type:'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  const d = new Date();
+  a.download = `むしむしからくり_バックアップ_${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}.json`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+});
+$('btn-import').addEventListener('click', () => $('import-file').click());
+$('import-file').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const d = JSON.parse(reader.result);
+      if (!d || typeof d !== 'object' || !d.cleared) throw new Error('形式が違います');
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(d));
+      SAVE = loadSave();
+      alert('復元しました');
+    } catch (err) { alert('読み込めませんでした：バックアップファイルを確認してください'); }
+    e.target.value = '';
+  };
+  reader.readAsText(file);
+});
+$('btn-reset').addEventListener('click', () => {
+  if (!confirm('クリア状況・ずかん・作った装置を全て消去します。よろしいですか？')) return;
+  if (!confirm('本当に消去しますか？（元に戻せません）')) return;
+  SAVE = defaultSave();
+  persist();
+  alert('消去しました');
+});
+
+/* ---------------- タイトル ---------------- */
+function initTitle() {
+  $('title-parade').innerHTML = ['risu','tento','kabuto','kaeru','hachi'].map(k => creatureSVG(k)).join('');
+  $('title-ver').textContent = 'v' + APP_VERSION;
+  $('parent-ver').textContent = 'むしむしからくり v' + APP_VERSION + '（データ形式 ' + DATA_SCHEMA + '）';
+}
+
+/* =====================================================================
+   セルフテスト（?selftest=1）
+===================================================================== */
+function emptyCells(lv) {
+  const b = buildBoard(lv, []);
+  const out = [];
+  for (let y = 0; y < lv.h; y++) for (let x = 0; x < lv.w; x++) if (canPlace(lv, b, x, y)) out.push({ x, y });
+  return out;
+}
+function bruteSolve(lv, n) {
+  const cs = emptyCells(lv), pal = lv.palette;
+  let found = null;
+  const rec = (start, acc) => {
+    if (found) return;
+    if (acc.length === n) { if (simulate(lv, acc).result === 'clear') found = acc.slice(); return; }
+    for (let i = start; i < cs.length && !found; i++) {
+      for (const t of pal) {
+        acc.push({ x:cs[i].x, y:cs[i].y, t });
+        rec(i + 1, acc);
+        acc.pop();
+        if (found) return;
+      }
+    }
+  };
+  rec(0, []);
+  return found;
+}
+function L(id) { return ALL_LEVELS.find(l => l.id === id); }
+
+function runSelftest() {
+  const out = [];
+  const T = (name, cond) => out.push({ name, ok: !!cond });
+
+  /* --- 1. 全レベルの 想定解 --- */
+  ALL_LEVELS.forEach(lv => {
+    const sol = SOLUTIONS[lv.id]();
+    const r = simulate(lv, sol);
+    T(`${lv.id} 想定解でクリア`, r.result === 'clear');
+    T(`${lv.id} 想定解の部品数(${sol.length}) == par(${lv.par})`, sol.length === lv.par);
+    T(`${lv.id} par(${lv.par}) <= maxParts(${lv.maxParts})`, lv.par <= lv.maxParts);
+    T(`${lv.id} 想定解の部品が パレットにある`, sol.every(p => lv.palette.includes(p.t)));
+    T(`${lv.id} 想定解が 置ける場所に置かれている`, sol.every((p, i) => {
+      const b = buildBoard(lv, sol.filter((_, j) => j !== i));
+      return canPlace(lv, b, p.x, p.y);
+    }));
+    T(`${lv.id} 部品0個では クリアできない`, simulate(lv, []).result !== 'clear');
+    T(`${lv.id} 想定解の部品は すべて必要`,
+      sol.every((_, i) => simulate(lv, sol.filter((_, j) => j !== i)).result !== 'clear'));
+  });
+  T('1個の部品では 解けない面（par>=2 の全面）',
+    ALL_LEVELS.filter(lv => lv.par >= 2).every(lv => bruteSolve(lv, 1) === null));
+
+  /* --- 2. レベルデータの 整合性 --- */
+  const ids = ALL_LEVELS.map(l => l.id);
+  T('レベルIDに 重複が ない', new Set(ids).size === ids.length);
+  T('全レベルに 生きものが 定義されている', ALL_LEVELS.every(lv => !!CREATURES[lv.creature]));
+  T('パーツずかんの 全部が どこかの面で 手に入る',
+    ZUKAN_PART_ORDER.every(k => ALL_LEVELS.some(lv => lv.part === k)));
+  T('生きものは 1面に1匹・重複なし',
+    new Set(ALL_LEVELS.map(l => l.creature)).size === ALL_LEVELS.length);
+  T('ずかんの 生きもの数 == 面数', Object.keys(CREATURES).length === ALL_LEVELS.length);
+  ALL_LEVELS.forEach(lv => {
+    T(`${lv.id} スタートとゴールが 盤の中`,
+      lv.start.x >= 0 && lv.start.x < lv.w && lv.start.y >= 0 && lv.start.y < lv.h &&
+      lv.goal.x >= 0 && lv.goal.x < lv.w && lv.goal.y >= 0 && lv.goal.y < lv.h);
+    T(`${lv.id} 固定物が スタート/ゴールと 重ならない`,
+      (lv.fixed || []).every(f => !(f.x === lv.start.x && f.y === lv.start.y) &&
+                                 !(f.x === lv.goal.x && f.y === lv.goal.y)));
+    T(`${lv.id} 固定物が 盤の中`, (lv.fixed || []).every(f => f.x >= 0 && f.x < lv.w && f.y >= 0 && f.y < lv.h));
+    T(`${lv.id} ふたが あるなら スイッチも ある`,
+      !(lv.fixed || []).some(f => f.t === 'lid') || (lv.fixed || []).some(f => f.t === 'switch'));
+  });
+
+  /* --- 3. 物理エンジン 単体 --- */
+  const tl = (w, h, fixed, start, goal) => ({ id:'t', w, h, fixed, start, goal, palette:P_FREE, par:0, maxParts:99 });
+  (() => {
+    // まっすぐ 落ちて ゴール
+    const lv = tl(3, 4, [], { x:1, y:0 }, { x:1, y:3 });
+    T('エンジン: まっすぐ 落ちて ゴール', simulate(lv, []).result === 'clear');
+  })();
+  (() => {
+    // 落ちるほど いきおいが ふえる
+    const lv = tl(3, 5, row(4, 0, 2), { x:1, y:0 }, { x:2, y:4 });
+    let last = 0;
+    for (const ev of runSim(lv, [])) if (ev.k === 'move') last = ev.ball.e;
+    T('エンジン: 3マス落ちると いきおい3', last === 3);
+  })();
+  (() => {
+    // 何もないと 止まる
+    const lv = tl(5, 4, row(3, 0, 4), { x:1, y:0 }, { x:4, y:2 });
+    T('エンジン: むきが ないと 止まる', simulate(lv, []).result === 'fail-stop');
+  })();
+  (() => {
+    // 坂で よこへ・いきおい+1
+    const lv = tl(6, 4, row(3, 0, 5), { x:1, y:0 }, { x:4, y:2 });
+    const r = simulate(lv, [{ x:1, y:2, t:'slopeR' }]);
+    T('エンジン: 坂で 右へ すべって ゴール', r.result === 'clear');
+    const r2 = simulate(lv, [{ x:1, y:2, t:'slopeL' }]);
+    T('エンジン: 坂の むきが 逆なら とどかない', r2.result !== 'clear');
+  })();
+  (() => {
+    // まさつ：いきおいの ぶんだけ すすむ
+    const lv = tl(9, 4, row(3, 0, 8), { x:1, y:0 }, { x:8, y:2 });
+    T('エンジン: いきおいが たりないと とどかない',
+      simulate(lv, [{ x:1, y:2, t:'slopeR' }]).result === 'fail-stop');
+  })();
+  (() => {
+    // 盤の外に おちる
+    const lv = tl(4, 3, [], { x:1, y:0 }, { x:3, y:0 });
+    T('エンジン: 下が ないと 外に おちる', simulate(lv, []).result === 'fail-outside');
+  })();
+  (() => {
+    // かべに ぶつかる
+    const lv = tl(6, 4, row(3, 0, 5).concat([{ x:3, y:2, t:'rock' }]), { x:1, y:0 }, { x:5, y:2 });
+    T('エンジン: かべに ぶつかると 止まる',
+      simulate(lv, [{ x:1, y:2, t:'slopeR' }]).result === 'fail-stop');
+  })();
+  (() => {
+    // ドミノ：1本だけ たおす
+    const lv = tl(7, 4, row(3, 0, 6), { x:1, y:0 }, { x:6, y:2 });
+    let dom = 0;
+    for (const ev of runSim(lv, [{ x:1, y:2, t:'slopeR' }, { x:4, y:2, t:'domino' }])) if (ev.k === 'domino') dom++;
+    T('エンジン: ドミノ1本は 1回 たおれる', dom === 1);
+  })();
+  (() => {
+    // ドミノ：となり合っていれば 連鎖する
+    const lv = tl(9, 4, row(3, 0, 8), { x:1, y:0 }, { x:8, y:2 });
+    const sol = [{ x:1, y:2, t:'slopeR' }, { x:4, y:2, t:'domino' }, { x:5, y:2, t:'domino' }, { x:6, y:2, t:'domino' }];
+    let dom = 0;
+    for (const ev of runSim(lv, sol)) if (ev.k === 'domino') dom++;
+    T('エンジン: ならんだ ドミノは 連鎖する（3本）', dom === 3);
+  })();
+  (() => {
+    // ドミノ：すきまが あると 連鎖が 止まる
+    const lv = tl(9, 4, row(3, 0, 8), { x:1, y:0 }, { x:8, y:2 });
+    const sol = [{ x:1, y:2, t:'slopeR' }, { x:4, y:2, t:'domino' }, { x:6, y:2, t:'domino' }];
+    let chain = 0;
+    for (const ev of runSim(lv, sol)) if (ev.k === 'domino' && !ev.byBall) chain++;
+    T('エンジン: すきまが あると 連鎖が 止まる', chain === 0);
+  })();
+  (() => {
+    // スイッチ → ふたが ひらく → たまが おちる
+    const lv = L('2-1');
+    let sw = 0, lids = 0;
+    for (const ev of runSim(lv, SOLUTIONS['2-1']())) if (ev.k === 'switch') { sw++; lids += ev.lids.length; }
+    T('エンジン: スイッチが 入って ふたが 1まい ひらく', sw === 1 && lids === 1);
+  })();
+  (() => {
+    // ふたが ひらかないと クリアできない
+    const lv = L('2-1');
+    T('エンジン: ドミノが とどかないと クリアできない',
+      simulate(lv, [{ x:1, y:2, t:'slopeR' }, { x:5, y:2, t:'domino' }]).result === 'fail-stop');
+  })();
+  (() => {
+    // ドミノが たまを おす
+    const lv = tl(8, 4, row(3, 0, 7), { x:1, y:0 }, { x:7, y:2 });
+    const base = [{ x:1, y:2, t:'slopeR' }];
+    let pushed = false;
+    for (const ev of runSim(L('2-1'), SOLUTIONS['2-1']())) if (ev.k === 'push') pushed = true;
+    T('エンジン: おし イベントは 通常は 起きない', pushed === false);
+    T('エンジン: 落ちる いきおいの 上限は EMAX', EMAX === 9);
+  })();
+  (() => {
+    // 無限ループ 保険
+    const lv = tl(5, 4, row(3, 0, 4), { x:1, y:0 }, { x:4, y:0 });
+    const r = simulate(lv, [{ x:1, y:2, t:'slopeR' }]);
+    T('エンジン: 止まったら かならず 終わる', r.result.startsWith('fail-') && r.result !== 'fail-toolong');
+  })();
+
+  /* --- 4. 敵対検証：へんな置き方でも こわれない --- */
+  ALL_LEVELS.forEach(lv => {
+    const b = buildBoard(lv, []);
+    T(`${lv.id} スタート/ゴール/固定物には 置けない`,
+      !canPlace(lv, b, lv.start.x, lv.start.y) && !canPlace(lv, b, lv.goal.x, lv.goal.y) &&
+      (lv.fixed || []).every(f => !canPlace(lv, b, f.x, f.y)));
+    T(`${lv.id} 盤の外には 置けない`,
+      !canPlace(lv, b, -1, 0) && !canPlace(lv, b, lv.w, 0) && !canPlace(lv, b, 0, lv.h) && !canPlace(lv, b, 0, -1));
+  });
+  ['plank','slopeR','slopeL','domino'].forEach(t => {
+    T(`敵対: 全マス${t}づめでも 無限にならない`, ALL_LEVELS.every(lv => {
+      if (!lv.palette.includes(t)) return true;
+      const r = simulate(lv, emptyCells(lv).map(c => ({ x:c.x, y:c.y, t })));
+      return r.result !== 'fail-toolong';
+    }));
+  });
+  T('敵対: 坂を たがいちがいに おいても 無限にならない', ALL_LEVELS.every(lv => {
+    const r = simulate(lv, emptyCells(lv).map((c, i) => ({ x:c.x, y:c.y, t: i % 2 ? 'slopeL' : 'slopeR' })));
+    return r.result !== 'fail-toolong';
+  }));
+  T('敵対: 上限を こえて 置いても シミュレーションは 走る', (() => {
+    const lv = L('1-1');
+    const r = simulate(lv, emptyCells(lv).slice(0, 20).map(c => ({ x:c.x, y:c.y, t:'plank' })));
+    return typeof r.result === 'string';
+  })());
+
+  /* --- 5. 部品メーター --- */
+  T('メーター: 0個は はじめの メッセージ', meterInfo(L('1-3'), 0).state === 'start');
+  T('メーター: par未満は のこり個数', meterInfo(L('1-3'), 1).msg.includes('あと 2こ'));
+  T('メーター: parちょうどは par状態', meterInfo(L('1-3'), 3).state === 'par');
+  T('メーター: par超過でも クリアできると 伝える',
+    meterInfo(L('1-3'), 4).state === 'over' && meterInfo(L('1-3'), 4).msg.includes('クリアは できる'));
+  T('メーター: 上限に とどくと full', meterInfo(L('1-3'), 6).state === 'full');
+  T('メーター: マスの数は 上限ぶん（超過時は 現在数）',
+    meterInfo(L('1-3'), 0).slots === 6 && meterInfo(L('1-3'), 9).slots === 9);
+  T('メーター: 全レベルで メッセージが 出る', ALL_LEVELS.every(lv =>
+    [0, 1, lv.par, lv.par + 1, lv.maxParts].every(n => !!meterInfo(lv, n).msg)));
+
+  /* --- 6. まめちしき --- */
+  T('全パーツに まめちしきが ある',
+    ZUKAN_PART_ORDER.every(k => PARTS[k] && PARTS[k].wow.length >= 10 && PARTS[k].fact.length >= 5));
+  T('パーツの まめちしきは 一言と 別の 文',
+    ZUKAN_PART_ORDER.every(k => PARTS[k].wow !== PARTS[k].fact));
+  T('全生きものに まめちしきが ある',
+    Object.keys(CREATURES).every(k => typeof CREATURES[k].wow === 'string' && CREATURES[k].wow.length >= 10));
+  T('まめちしきに 重複が ない', (() => {
+    const all = Object.values(CREATURES).map(c => c.wow).concat(ZUKAN_PART_ORDER.map(k => PARTS[k].wow));
+    return new Set(all).size === all.length;
+  })());
+
+  /* --- 7. 漢字が 2年生までか（画面の 文も ふくめて 走査） --- */
+  (() => {
+    const G1 = '一右雨円王音下火花貝学気九休玉金空月犬見五口校左三山子四糸字耳七車手十出女小上森人水正生青夕石赤千川先早草足村大男竹中虫町天田土二日入年白八百文木本名目立力林六';
+    const G2 = '引羽雲園遠何科夏家歌画回会海絵外角楽活間丸岩顔汽記帰弓牛魚京強教近兄形計元言原戸古午後語工公広交光考行高黄合谷国黒今才細作算止市矢姉思紙寺自時室社弱首秋週春書少場色食心新親図数西声星晴切雪船線前組走多太体台地池知茶昼長鳥朝直通弟店点電刀冬当東答頭同道読内南肉馬売買麦半番父風分聞米歩母方北毎妹万明鳴毛門夜野友用曜来里理話';
+    const ok = new Set(Array.from(G1 + G2));
+    const texts = [];
+    Object.values(CREATURES).forEach(c => texts.push(c.name, c.fact, c.wow));
+    ZUKAN_PART_ORDER.forEach(k => texts.push(PARTS[k].name, PARTS[k].fact, PARTS[k].wow));
+    Object.values(PART_LABEL).forEach(v => texts.push(v));
+    Object.values(UI).forEach(v => texts.push(v));
+    ISLANDS.forEach(is => texts.push(is.name, is.sub));
+    ALL_LEVELS.forEach(lv => texts.push(lv.name, lv.goal_, lv.hint));
+    // クリア画面・メーターの 文
+    texts.push('やったー！', 'うごいた！', 'ぴったりしょう！ すごい！', 'ずかんに なかま入り！',
+               'からくりパーツ', 'を 手に 入れた！', 'ぜんぶ クリア！！', 'つぎは',
+               'いちばん 少ない ぶひん', 'ぶひんは これで いっぱい！', 'ドミノに おされた！',
+               'ステージ', 'しまを えらぼう', 'ずかん', 'もどる', 'つぎへ', 'もう一回', 'マップへ',
+               'ぜんぶ けす', 'スタート', 'みせる', 'ひろさ', 'いきもの', 'ほぞん', 'よみこむ',
+               'ゴールの 生きものを えらぼう', 'どこに ほぞんする？', 'どれを よみこむ？',
+               'クリアすると 手に 入るよ', 'クリアすると なかま入りするよ',
+               'じぶんの からくり', 'じぶんで 作った からくりが うごいたよ！',
+               'たまが', 'マス うごいて とどいたよ！', 'からくりって すごいね。',
+               'で あった 生きもの', 'いつでも あそべる', 'まで クリアで あく', 'なおす', 'ヒント',
+               'こまでで クリアすると', 'が もらえるよ', 'こで クリアできるかな？');
+    const bad = [];
+    texts.forEach(t => Array.from(String(t)).forEach(ch => {
+      if (/[一-鿿]/.test(ch) && !ok.has(ch) && bad.indexOf(ch) < 0) bad.push(ch);
+    }));
+    T('文章の 漢字が すべて 2年生まで' + (bad.length ? '（NG: ' + bad.join('') + '）' : ''), bad.length === 0);
+  })();
+
+  /* --- 8. しま/めん の 解放ロジック --- */
+  (() => {
+    const bak = JSON.parse(JSON.stringify(SAVE));
+    SAVE.cleared = {};
+    T('最初は しま1だけ 解放', islandUnlocked(0) && !islandUnlocked(1) && !islandUnlocked(2));
+    T('最初は 1-1だけ あそべる', levelUnlocked(L('1-1')) && !levelUnlocked(L('1-2')));
+    SAVE.cleared['1-1'] = { clear:true };
+    T('1-1クリアで 1-2が 解放', levelUnlocked(L('1-2')));
+    ISLANDS[0].levels.forEach(lv => SAVE.cleared[lv.id] = { clear:true });
+    T('しま1全クリアで しま2が 解放', islandUnlocked(1) && !islandUnlocked(2));
+    ISLANDS[1].levels.forEach(lv => SAVE.cleared[lv.id] = { clear:true });
+    T('しま2全クリアで じゆう工作が 解放', islandUnlocked(2));
+    SAVE.cleared = bak.cleared; SAVE.zukan = bak.zukan; SAVE.parts = bak.parts;
+    SAVE.free = bak.free; SAVE.settings = bak.settings;
+  })();
+
+  /* --- 9. 保存 --- */
+  (() => {
+    const bak = localStorage.getItem(STORAGE_KEY);
+    try {
+      const t = defaultSave();
+      t.cleared['1-1'] = { clear:true, perfect:true };
+      t.zukan.push('risu'); t.parts.push('slopeR');
+      t.free.slots[1] = { w:8, h:5 };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(t));
+      const re = loadSave();
+      T('保存→読込 roundtrip',
+        re.cleared['1-1'].perfect === true && re.zukan.includes('risu') &&
+        re.parts.includes('slopeR') && re.free.slots[1].w === 8);
+      localStorage.setItem(STORAGE_KEY, '{"broken":');
+      T('壊れたデータでも デフォルトで 起動', Object.keys(loadSave().cleared).length === 0);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ schema:1, version:'0.9.0',
+        cleared:{ '1-1':{clear:true} }, zukan:['risu'] }));
+      const old = loadSave();
+      T('古い形（parts/free なし）でも 読める',
+        old.cleared['1-1'].clear === true && Array.isArray(old.parts) && old.free.slots.length === 3);
+    } finally {
+      if (bak === null) localStorage.removeItem(STORAGE_KEY); else localStorage.setItem(STORAGE_KEY, bak);
+    }
+  })();
+
+  /* --- 10. じゆう工作 --- */
+  T('じゆう: はじめの 装置は 形が ただしい', (() => {
+    const f = defaultFree(), lv = freeToLevel(f);
+    const b = buildBoard(lv, f.parts);
+    return !isSolid(b[lv.start.y][lv.start.x]) && lv.w >= 6 && lv.h >= 4;
+  })());
+  T('じゆう: はじめの 装置は 坂を 1つ 足すと うごく', (() => {
+    const f = defaultFree(), lv = freeToLevel(f);
+    return simulate(lv, f.parts.concat([{ x:1, y:4, t:'slopeR' }])).result === 'clear';
+  })());
+  T('じゆう: こわれたデータを 直して 読む', (() => {
+    const f = reviveFree({ w:999, h:-3, start:{x:99,y:99}, goal:'x', parts:'x', creature:'ないよ' });
+    return f.w <= 12 && f.h >= 4 && f.start.x < f.w && f.start.y < f.h &&
+           f.creature === 'risu' && Array.isArray(f.parts) && f.parts.length === 0;
+  })());
+  T('じゆう: 盤の外の 部品は すてられる', (() => {
+    const f = reviveFree({ w:8, h:5, start:{x:0,y:0}, goal:{x:7,y:4}, creature:'risu',
+      parts:[{x:99,y:1,t:'plank'},{x:2,y:2,t:'plank'},{x:2,y:2,t:'へんなの'},{x:0,y:0,t:'plank'}] });
+    return f.parts.length === 1 && f.parts[0].x === 2;
+  })());
+  T('じゆう: ひろさは 6〜12 / 4〜8 に おさまる', (() => {
+    const a = reviveFree({ w:2, h:2 }), b = reviveFree({ w:40, h:40 });
+    return a.w >= 6 && a.h >= 4 && b.w <= 12 && b.h <= 8;
+  })());
+
+  const okCount = out.filter(t => t.ok).length;
+  $('selftest-out').innerHTML = out.map(t => `<div class="${t.ok?'ok':'ng'}">${t.ok?'✅':'❌'} ${t.name}</div>`).join('')
+    + `<h2 style="margin-top:14px">${okCount} / ${out.length} 件 合格</h2>`;
+  $('selftest-overlay').classList.add('show');
+  document.title = `selftest ${okCount}/${out.length}`;
+  return { ok:okCount, total:out.length };
+}
+
+/* ---------------- 起動 ---------------- */
+initTitle();
+if (location.search.includes('selftest=1')) runSelftest();
+</script>
+</body>
+</html>
